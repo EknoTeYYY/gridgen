@@ -1,0 +1,14 @@
+{
+  email {$CADDY_ACME_EMAIL}
+}
+
+# Domínios ainda placeholder — troca quando o produto tiver marca definida.
+{$APP_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy web:3000
+}
+
+api.{$APP_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy api:8080
+}

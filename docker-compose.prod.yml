@@ -1,0 +1,30 @@
+name: studio
+
+# Override de produção: soma o Caddy próprio deste produto (TLS automático,
+# reverse proxy) por cima do docker-compose.yml base. Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Este Caddy é INDEPENDENTE do reverse proxy compartilhado (ekno-infra-edge) —
+# nada aqui referencia a rede `public_web` nem qualquer serviço hoje existente
+# na eknotech. Na mesma VM física, garantir que as portas 80/443 não colidam
+# com o Caddy já em uso pelos outros serviços é um detalhe operacional de rede
+# (ex. IP dedicado pro domínio deste produto), não uma dependência arquitetural.
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file: .env
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - studio_caddy_data:/data
+      - studio_caddy_config:/config
+    depends_on:
+      - api
+    networks: [studio-backend]
+
+volumes:
+  studio_caddy_data:
+  studio_caddy_config:

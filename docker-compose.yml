@@ -1,0 +1,105 @@
+name: studio
+
+# Stack isolada deste produto: Postgres e Redis próprios, sem depender de
+# nenhum serviço hoje existente na eknotech.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # Publicado só em localhost — conveniência de dev (psql, prisma migrate
+    # dev). O override de produção pode remover isso se quiser.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - studio_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [studio-backend]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [studio-backend]
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      OUTPUT_DIR: /data/output
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - studio_output:/data/output
+    # Publicado em localhost só pra conveniência de dev (testar com curl sem
+    # subir o Caddy/domínio ainda). Em produção o Caddy (docker-compose.prod.yml)
+    # é quem expõe a api pra fora.
+    ports:
+      - "127.0.0.1:8080:8080"
+    expose: ["8080"]
+    networks: [studio-backend]
+
+  render:
+    build:
+      context: .
+      dockerfile: render/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379
+      OUTPUT_DIR: /data/output
+    depends_on:
+      redis: { condition: service_healthy }
+    volumes:
+      - studio_output:/data/output
+    networks: [studio-backend]
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    restart: unless-stopped
+    environment:
+      # Server Components/Route Handlers do Next chamam a api direto pela
+      # rede interna do Docker — nunca pelo domínio público.
+      API_INTERNAL_URL: http://api:8080
+      NODE_ENV: production
+    depends_on:
+      - api
+    # Publicado em localhost pra abrir http://localhost:3000 direto, sem
+    # precisar configurar domínio/Caddy ainda. Sem IP fixo aqui (nada de
+    # "127.0.0.1:3000:3000"): o Firefox no Windows resolve "localhost" como
+    # ::1 (IPv6) antes de 127.0.0.1, e o bind só em IPv4 deixava a porta
+    # inacessível via IPv6 ("conexão recusada" mesmo com o container up).
+    ports:
+      - "3000:3000"
+    networks: [studio-backend]
+
+volumes:
+  studio_postgres:
+  # Volume compartilhado entre api e render: o worker escreve os PNGs/legenda
+  # aqui, a api lê pra servir de volta pro usuário baixar.
+  studio_output:
+
+networks:
+  studio-backend:
+    driver: bridge

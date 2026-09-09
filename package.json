@@ -1,0 +1,22 @@
+{
+  "name": "studio",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "packages/*",
+    "api",
+    "render",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@studio/shared && npm run build --workspaces --if-present",
+    "dev:api": "npm run dev --workspace=api",
+    "dev:render": "npm run dev --workspace=render",
+    "dev:web": "npm run dev --workspace=web",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

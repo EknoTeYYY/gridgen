@@ -1,0 +1,385 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PerfilTipo {
+  empresa
+  pessoal
+}
+
+enum PostTipo {
+  ancora
+  dor
+  prova
+  didatico
+  dado
+  oferta
+}
+
+enum PostFormato {
+  feed
+  square
+  story
+}
+
+enum PostStatus {
+  rascunho
+  gerando
+  pronto
+  erro
+}
+
+enum RenderJobStatus {
+  pendente
+  processando
+  concluido
+  erro
+}
+
+enum SaidaCanal {
+  instagram
+  linkedin
+  tiktok
+}
+
+enum SaidaStatus {
+  pendente
+  enviado
+  erro
+  indisponivel
+}
+
+enum ContextoRole {
+  user
+  assistant
+}
+
+enum PostOrigem {
+  adhoc // usuário clicou "gerar com IA" na hora
+  agenda // gerado automaticamente pelo calendário sazonal
+}
+
+model Conta {
+  id        String   @id @default(uuid())
+  nome      String
+  slug      String   @unique
+  plano     String   @default("contratado")
+  status    String   @default("ativa") // ativa | inativa — inativa bloqueia login/refresh (gestão de acesso, ex. inadimplência)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuarios User[]
+  perfis   Perfil[]
+  convites ConviteConta[]
+
+  @@map("contas")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  contaId      String
+  nome         String
+  email        String   @unique
+  senhaHash    String
+  papel        String   @default("owner") // owner | editor
+  isSuperAdmin Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  conta           Conta          @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  refreshTokens   RefreshToken[]
+  convitesCriados ConviteConta[]
+
+  @@index([contaId])
+  @@map("users")
+}
+
+// Convite de acesso a uma Conta (agência) criada por um superadmin — o
+// produto não tem mais autocadastro público, só provisionamento via convite.
+// O User da agência só nasce quando o convite é aceito (evita um usuário
+// "fantasma" com senha inutilizável parado no banco antes disso).
+model ConviteConta {
+  id              String    @id @default(uuid())
+  contaId         String
+  email           String
+  tokenHash       String    @unique
+  criadoPorUserId String
+  expiresAt       DateTime
+  aceitoEm        DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  conta         Conta @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  criadoPorUser User  @relation(fields: [criadoPorUserId], references: [id])
+
+  @@index([contaId])
+  @@map("convites_conta")
+}
+
+// Refresh token de verdade: opaco, guardado com hash, revogável — nada de
+// reemitir/estender o mesmo access token perto de expirar.
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  revokedAt  DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// A marca/rede social para quem o conteúdo é gerado. Pertence a uma Conta.
+// Pode representar uma empresa cliente ou o perfil pessoal de alguém —
+// inclusive o próprio perfil da eknotech dentro da conta dela.
+model Perfil {
+  id        String     @id @default(uuid())
+  contaId   String
+  nome      String
+  tipo      PerfilTipo @default(empresa)
+  slug      String
+  status    String     @default("ativo")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // BrandKit — substitui o antigo brand.mjs hardcoded.
+  corPrimaria   String  @default("#8b5cf6")
+  corSecundaria String  @default("#3b82f6")
+  corFundo      String  @default("#0b0a14")
+  corTexto      String  @default("#f1effa")
+  fonte         String  @default("poppins-inter")
+  logoColorUrl  String?
+  logoBrancoUrl String?
+  iconeColorUrl String?
+  iconeBrancoUrl String?
+  lockupTag     String?
+  url           String?
+  temaPadrao    String  @default("ink")
+
+  // Contato — documento é CNPJ (tipo empresa) ou CPF (tipo pessoal), guardado
+  // só com dígitos (a formatação é responsabilidade da UI).
+  telefoneContato String?
+  emailContato    String?
+  documento       String?
+  instagramUrl    String?
+  linkedinUrl     String?
+  tiktokUrl       String?
+
+  conta               Conta               @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  contexto            ContextoMarkdown?
+  mensagensContexto   MensagemContexto[]
+  posts               Post[]
+  datasPersonalizadas DataPersonalizada[]
+  galeriaItens        GaleriaItem[]
+  galeriaPastas       GaleriaPasta[]
+
+  @@unique([contaId, slug])
+  @@index([contaId])
+  @@map("perfis")
+}
+
+// Biblioteca de imagens do Perfil, organizada em pastas livres (Referências,
+// Produtos, Eventos, Logo/marca, etc.) — a pasta é só um texto associado a
+// cada imagem, não uma entidade própria referenciada por FK.
+model GaleriaItem {
+  id        String   @id @default(uuid())
+  perfilId  String
+  pasta     String
+  nome      String?
+  url       String
+  createdAt DateTime @default(now())
+
+  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  @@index([perfilId])
+  @@index([perfilId, pasta])
+  @@map("galeria_itens")
+}
+
+// Uma pasta da Galeria "existe" normalmente só por ter ≥1 GaleriaItem — essa
+// tabela é só pro caso de criar uma pasta vazia (ação "Criar pasta", antes de
+// anexar a primeira imagem), pra ela não sumir num reload. Convive com
+// GaleriaItem.pasta sem conflito: o nome pode aparecer nas duas, o merge é
+// feito em memória (não é uma FK de verdade pra GaleriaItem).
+model GaleriaPasta {
+  id        String   @id @default(uuid())
+  perfilId  String
+  nome      String
+  createdAt DateTime @default(now())
+
+  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  @@unique([perfilId, nome])
+  @@map("galeria_pastas")
+}
+
+// Datas específicas do Perfil (aniversário da empresa, etc.) que somam ao
+// calendário sazonal curado (esse é compartilhado entre todos os Perfis e
+// vive em código — @studio/shared — não precisa de tabela própria).
+model DataPersonalizada {
+  id           String   @id @default(uuid())
+  perfilId     String
+  nome         String
+  mes          Int
+  dia          Int
+  tipoSugerido PostTipo @default(oferta)
+  ativa        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  @@index([perfilId])
+  @@map("datas_personalizadas")
+}
+
+model ContextoMarkdown {
+  id               String   @id @default(uuid())
+  perfilId         String   @unique
+  conteudoMarkdown String   @default("")
+  atualizadoEm     DateTime @updatedAt
+
+  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  @@map("contexto_markdown")
+}
+
+model MensagemContexto {
+  id        String       @id @default(uuid())
+  perfilId  String
+  role      ContextoRole
+  conteudo  String
+  createdAt DateTime     @default(now())
+
+  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  @@index([perfilId])
+  @@map("mensagens_contexto")
+}
+
+model Post {
+  id        String      @id @default(uuid())
+  perfilId  String
+  tipo      PostTipo
+  formato   PostFormato @default(feed)
+  slug      String
+  caption   String      @default("")
+  hashtags  String      @default("")
+  slides    Json
+  // Eixo independente do tipo: "padrao" é o carrossel de sempre (photo/split/
+  // word/... por receita do tipo); "tweet" é o card estilo publicação de rede
+  // social (avatar+nome+@+texto, sem foto) — mesma narrativa do tipo, outra
+  // composição visual. Fixo desde a criação, igual `tipo`/`formato`.
+  estiloVisual String     @default("padrao")
+  status    PostStatus  @default(rascunho)
+  origem    PostOrigem  @default(adhoc)
+  // Preenchidos só quando origem = agenda — identificam de qual data
+  // comemorativa/personalizada este post veio, e evitam gerar duplicado pra
+  // mesma ocorrência (ver @@unique abaixo).
+  campanhaSlug String?
+  campanhaNome String?
+  campanhaData DateTime?
+  // Data/hora escolhida pelo usuário pra publicar este post (independente de
+  // ele ter vindo do calendário sazonal ou não) — aparece no calendário. A
+  // publicação em si continua manual (decisão de produto: automatizar postagem
+  // direto nas redes foi descartado pela burocracia/risco de cada plataforma);
+  // o que existe é um aviso por e-mail nesse horário (ver `avisoAgendamentoEnviadoEm`).
+  agendadoPara DateTime?
+  // Marca quando o e-mail de aviso ("hora de publicar") foi enviado — evita
+  // reenviar a cada varredura do scheduler. Null = ainda não enviado.
+  avisoAgendamentoEnviadoEm DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  perfil     Perfil         @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  renderJobs RenderJob[]
+  saidas     SaidaEntrega[]
+
+  @@unique([perfilId, slug])
+  @@unique([perfilId, campanhaSlug, campanhaData])
+  @@index([perfilId])
+  @@map("posts")
+}
+
+model RenderJob {
+  id         String          @id @default(uuid())
+  postId     String
+  // Nulo = render do post principal (Instagram/carrossel, comportamento de
+  // sempre). Preenchido = render específico de uma rede (ex.: a imagem única
+  // do LinkedIn), escrito em OUTPUT_DIR/{postId}/{canal}/ em vez da pasta
+  // raiz do post — mesma fila e worker, só o destino muda.
+  canal      SaidaCanal?
+  status     RenderJobStatus @default(pendente)
+  erroMsg    String?
+  createdAt  DateTime        @default(now())
+  finishedAt DateTime?
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("render_jobs")
+}
+
+// Publicação automática por rede ainda não existe (Fase 5) — os 3 canais
+// existem no schema como indisponíveis, esperando essa integração.
+// Cada linha é "este post nesta rede": o conjunto de canais de um post
+// responde "pra onde ele vai", e agendadoPara/publicadoEm respondem "quando"
+// (planejado vs. o que realmente aconteceu) — por rede, não só pro post
+// inteiro (Post.agendadoPara continua existindo à parte, como a intenção
+// geral/padrão antes de se saber pra quais redes o post vai de fato).
+model SaidaEntrega {
+  id           String          @id @default(uuid())
+  postId       String
+  canal        SaidaCanal
+  status       SaidaStatus     @default(pendente)
+  refExterna   String?
+  disponivel   Boolean         @default(true)
+  agendadoPara DateTime?
+  publicadoEm  DateTime?
+  // Conteúdo tailored pra essa rede especificamente — cada rede converte
+  // melhor de um jeito (validado na engine local), não dá pra publicar o
+  // mesmo texto em todas. Nulo = ainda não adaptado, usa o do Post como
+  // padrão. `slides` guarda a estrutura de layouts PRÓPRIA dessa rede (ex.:
+  // LinkedIn é sempre 1 slide só, a capa do tipo — não precisa mais bater com
+  // a receita do Post principal).
+  caption      String?
+  hashtags     String?
+  slides       Json?
+  // Status da imagem renderizada especificamente pra essa rede (independente
+  // de `status`, que é sobre publicação de verdade na Fase 5). Mesmo enum de
+  // `RenderJob.status` — pendente até a 1ª geração, depois segue o mesmo
+  // ciclo do render do post principal.
+  imagemStatus RenderJobStatus @default(pendente)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("saidas_entrega")
+}
+
+// Lead capturado pelo formulário público da LP ("Fale com a gente") — não tem
+// relação com Conta/User de propósito: é alguém interessado ANTES de virar
+// cliente, não cabe no modelo de tenant (Contas são provisionadas por um
+// superadmin, não nascem de autocadastro). Só a Eknotech (superadmin) vê isso,
+// em /admin.
+model LeadContato {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String
+  empresa   String?
+  telefone  String?
+  mensagem  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("leads_contato")
+}
