@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CalendarClock, ChevronLeft, ChevronRight, Loader2, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { ANTECEDENCIA_DIAS, CALENDARIO_SAZONAL, diferencaEmDias, TIPOS, type TipoConteudo } from '@studio/shared'
+import { ANTECEDENCIA_DIAS, CALENDARIO_SAZONAL, diferencaEmDias, TIPOS, type TipoConteudo } from '@gridgen/shared'
 import type { DataPersonalizada, Post } from '@/lib/types'
 import {
   AlertDialog,

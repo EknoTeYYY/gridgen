@@ -6,7 +6,7 @@ import { Queue, QueueEvents } from 'bullmq'
 import fp from 'fastify-plugin'
 import { Redis } from 'ioredis'
 import type { FastifyInstance } from 'fastify'
-import { RENDER_QUEUE_NAME, type RenderJobResult } from '@studio/shared'
+import { RENDER_QUEUE_NAME, type RenderJobResult } from '@gridgen/shared'
 import { env } from '../env.js'
 
 declare module 'fastify' {

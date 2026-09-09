@@ -1,6 +1,6 @@
 import { Instagram, Linkedin } from 'lucide-react'
 import { SiTiktok } from 'react-icons/si'
-import { REDE_NOME, type RedeSocial } from '@studio/shared'
+import { REDE_NOME, type RedeSocial } from '@gridgen/shared'
 import type { SaidaEntrega } from '@/lib/types'
 import { cn } from '@/lib/utils'
 

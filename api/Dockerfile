@@ -13,8 +13,8 @@ COPY api/package.json api/
 RUN npm ci
 COPY packages/shared packages/shared
 COPY api api
-RUN npm run build --workspace=@studio/shared \
- && npm run build --workspace=@studio/api
+RUN npm run build --workspace=@gridgen/shared \
+ && npm run build --workspace=@gridgen/api
 
 FROM node:22-bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \

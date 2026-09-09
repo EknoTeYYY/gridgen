@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import type { RedeSocial } from '@studio/shared'
+import type { RedeSocial } from '@gridgen/shared'
 import { resolverImagemAutomatica } from '../../lib/imagem-automatica.js'
 import { idDoJobPrepararRede } from '../../plugins/preparar-redes.js'
 import { extrairHandleInstagram, proximoSlugDePost, slidesDoJson, slidesParaJson } from '../posts/posts.service.js'

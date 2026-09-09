@@ -1,5 +1,5 @@
 {
-  "name": "@studio/render",
+  "name": "@gridgen/render",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@studio/shared": "*",
+    "@gridgen/shared": "*",
     "bullmq": "^5.34.0",
     "ioredis": "^5.4.1",
     "puppeteer-core": "^25.3.0"

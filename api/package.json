@@ -1,5 +1,5 @@
 {
-  "name": "@studio/api",
+  "name": "@gridgen/api",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@prisma/client": "^5.22.0",
-    "@studio/shared": "*",
+    "@gridgen/shared": "*",
     "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.34.0",

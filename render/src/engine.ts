@@ -14,7 +14,7 @@
 //    template literal de verdade;
 //  - fotos chegam como `slide.photoDataUri` (já resolvido pela API) em vez
 //    de caminho de arquivo lido do disco.
-import type { BrandKit, Formato, Slide } from '@studio/shared'
+import type { BrandKit, Formato, Slide } from '@gridgen/shared'
 import { pacoteFonte } from './fonts.js'
 
 export const CANVAS_WIDTH = 1080

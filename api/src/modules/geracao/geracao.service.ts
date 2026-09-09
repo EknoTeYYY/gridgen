@@ -13,7 +13,7 @@ import {
   type Slide,
   type Tema,
   type TipoConteudo,
-} from '@studio/shared'
+} from '@gridgen/shared'
 import { getClaude } from '../../lib/claude.js'
 import { env } from '../../env.js'
 

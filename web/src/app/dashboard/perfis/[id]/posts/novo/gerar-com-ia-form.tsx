@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Instagram, Loader2, Sparkles } from 'lucide-react'
-import { TIPOS, type Formato, type TipoConteudo } from '@studio/shared'
+import { TIPOS, type Formato, type TipoConteudo } from '@gridgen/shared'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

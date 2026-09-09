@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
-import { receitaDe, TIPOS, type BrandKit, type RenderJobPayload, type Slide, type TipoConteudo } from '@studio/shared'
+import { receitaDe, TIPOS, type BrandKit, type RenderJobPayload, type Slide, type TipoConteudo } from '@gridgen/shared'
 
 // Prisma tipa a coluna Json como JsonValue (leitura) / InputJsonValue
 // (escrita) — nenhum dos dois casa direto com Slide[], então o cast passa

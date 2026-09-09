@@ -47,7 +47,7 @@ export interface SaidaEntrega {
   publicadoEm: string | null
   caption: string | null
   hashtags: string | null
-  slides: import('@studio/shared').Slide[] | null
+  slides: import('@gridgen/shared').Slide[] | null
   imagemStatus: 'pendente' | 'processando' | 'concluido' | 'erro'
   arquivos: string[]
   createdAt: string
@@ -61,7 +61,7 @@ export interface Post {
   slug: string
   caption: string
   hashtags: string
-  slides: import('@studio/shared').Slide[]
+  slides: import('@gridgen/shared').Slide[]
   estiloVisual: 'padrao' | 'tweet'
   status: PostStatus
   origem: 'adhoc' | 'agenda'

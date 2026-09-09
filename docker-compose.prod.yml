@@ -1,4 +1,4 @@
-name: studio
+name: gridgen
 
 # Override de produção: soma o Caddy próprio deste produto (TLS automático,
 # reverse proxy) por cima do docker-compose.yml base. Uso:
@@ -19,12 +19,12 @@ services:
     env_file: .env
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - studio_caddy_data:/data
-      - studio_caddy_config:/config
+      - gridgen_caddy_data:/data
+      - gridgen_caddy_config:/config
     depends_on:
       - api
-    networks: [studio-backend]
+    networks: [gridgen-backend]
 
 volumes:
-  studio_caddy_data:
-  studio_caddy_config:
+  gridgen_caddy_data:
+  gridgen_caddy_config:

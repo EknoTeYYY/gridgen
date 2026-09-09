@@ -3,7 +3,7 @@
 // o bug do gradiente corrigido). Uso: npx tsx src/preview.ts
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import type { BrandKit, Slide } from '@studio/shared'
+import type { BrandKit, Slide } from '@gridgen/shared'
 import { closeBrowser, getBrowser } from './browser.js'
 import { CANVAS_SCALE, dimensoesPara, pageHTML } from './engine.js'
 

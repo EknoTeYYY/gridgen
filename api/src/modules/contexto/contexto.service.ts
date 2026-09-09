@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { SECOES_CONTEXTO, secoesPendentes } from '@studio/shared'
+import { SECOES_CONTEXTO, secoesPendentes } from '@gridgen/shared'
 import { getClaude } from '../../lib/claude.js'
 import { env } from '../../env.js'
 

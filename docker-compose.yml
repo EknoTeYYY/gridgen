@@ -1,4 +1,4 @@
-name: studio
+name: gridgen
 
 # Stack isolada deste produto: Postgres e Redis próprios, sem depender de
 # nenhum serviço hoje existente na eknotech.
@@ -15,13 +15,13 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - studio_postgres:/var/lib/postgresql/data
+      - gridgen_postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
-    networks: [studio-backend]
+    networks: [gridgen-backend]
 
   redis:
     image: redis:7-alpine
@@ -33,7 +33,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    networks: [studio-backend]
+    networks: [gridgen-backend]
 
   api:
     build:
@@ -49,14 +49,14 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     volumes:
-      - studio_output:/data/output
+      - gridgen_output:/data/output
     # Publicado em localhost só pra conveniência de dev (testar com curl sem
     # subir o Caddy/domínio ainda). Em produção o Caddy (docker-compose.prod.yml)
     # é quem expõe a api pra fora.
     ports:
       - "127.0.0.1:8080:8080"
     expose: ["8080"]
-    networks: [studio-backend]
+    networks: [gridgen-backend]
 
   render:
     build:
@@ -70,8 +70,8 @@ services:
     depends_on:
       redis: { condition: service_healthy }
     volumes:
-      - studio_output:/data/output
-    networks: [studio-backend]
+      - gridgen_output:/data/output
+    networks: [gridgen-backend]
 
   web:
     build:
@@ -92,14 +92,14 @@ services:
     # inacessível via IPv6 ("conexão recusada" mesmo com o container up).
     ports:
       - "3000:3000"
-    networks: [studio-backend]
+    networks: [gridgen-backend]
 
 volumes:
-  studio_postgres:
+  gridgen_postgres:
   # Volume compartilhado entre api e render: o worker escreve os PNGs/legenda
   # aqui, a api lê pra servir de volta pro usuário baixar.
-  studio_output:
+  gridgen_output:
 
 networks:
-  studio-backend:
+  gridgen-backend:
     driver: bridge

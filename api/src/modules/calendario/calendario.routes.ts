@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { proximaOcorrencia } from '@studio/shared'
+import { proximaOcorrencia } from '@gridgen/shared'
 import { criarDataPersonalizadaSchema } from './calendario.schemas.js'
 import {
   BACKOFF_INICIAL_MS,
@@ -15,7 +15,7 @@ export default async function calendarioRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate)
 
   // Calendário curado é compartilhado entre todos os Perfis (vive em código,
-  // @studio/shared) — só devolve a próxima ocorrência de cada um pra exibir.
+  // @gridgen/shared) — só devolve a próxima ocorrência de cada um pra exibir.
   app.get('/calendario-sazonal', async (_request, reply) => {
     return reply.send({ datas: proximasOcorrenciasCuradas(new Date()) })
   })

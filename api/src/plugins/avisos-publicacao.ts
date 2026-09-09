@@ -7,7 +7,7 @@ import { Queue, Worker } from 'bullmq'
 import fp from 'fastify-plugin'
 import { Redis } from 'ioredis'
 import type { FastifyInstance } from 'fastify'
-import { REDE_NOME, type RedeSocial } from '@studio/shared'
+import { REDE_NOME, type RedeSocial } from '@gridgen/shared'
 import { env } from '../env.js'
 import { enviarAvisoPublicacao } from '../lib/email.js'
 

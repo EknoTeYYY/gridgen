@@ -8,8 +8,8 @@ COPY render/package.json render/
 RUN npm ci
 COPY packages/shared packages/shared
 COPY render render
-RUN npm run build --workspace=@studio/shared \
- && npm run build --workspace=@studio/render
+RUN npm run build --workspace=@gridgen/shared \
+ && npm run build --workspace=@gridgen/render
 
 FROM node:22-bookworm-slim AS runtime
 # Alpine (musl) tem histórico de instabilidade com Chrome headless — Debian é

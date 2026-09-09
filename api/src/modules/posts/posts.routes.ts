@@ -4,7 +4,7 @@ import path from 'node:path'
 import archiver from 'archiver'
 import type { Prisma, SaidaCanal } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
-import { camposFaltando, type RenderJobPayload, type Slide } from '@studio/shared'
+import { camposFaltando, type RenderJobPayload, type Slide } from '@gridgen/shared'
 import { env } from '../../env.js'
 import {
   arquivoValido,

@@ -8,8 +8,8 @@ COPY web/package.json web/
 RUN npm ci
 COPY packages/shared packages/shared
 COPY web web
-RUN npm run build --workspace=@studio/shared \
- && npm run build --workspace=@studio/web
+RUN npm run build --workspace=@gridgen/shared \
+ && npm run build --workspace=@gridgen/web
 
 FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production

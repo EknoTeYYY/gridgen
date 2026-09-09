@@ -6,7 +6,7 @@ import {
   montarSlidesPadrao,
   proximaOcorrencia,
   type TipoConteudo,
-} from '@studio/shared'
+} from '@gridgen/shared'
 import { gerarRascunhoComIA } from '../geracao/geracao.service.js'
 import { proximoSlugDePost, slidesParaJson } from '../posts/posts.service.js'
 
