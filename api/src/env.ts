@@ -32,4 +32,12 @@ const schema = z.object({
   INVITE_TOKEN_TTL_DAYS: z.coerce.number().default(7),
 })
 
-export const env = schema.parse(process.env)
+// `VAR=` (presente, vazia) não é a mesma coisa que "ausente" pro Zod — só
+// `undefined` aciona `.default()`. Numa `.env` de verdade, deixar uma
+// variável em branco é sempre uma forma de dizer "não configurei ainda",
+// nunca um valor literal vazio de propósito — então trata os dois casos
+// igual, senão um campo como `EMAIL_FROM` (validado com `.email()`) derruba
+// o boot inteiro só por estar em branco em vez de comentado/ausente.
+const envSemVazios = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== ''))
+
+export const env = schema.parse(envSemVazios)
