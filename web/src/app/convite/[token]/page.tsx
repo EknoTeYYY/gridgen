@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ServerFetchError, serverFetch } from '@/lib/session'
 import type { ConviteInfo } from '@/lib/types'
@@ -19,11 +19,15 @@ export default async function ConvitePage({ params }: { params: Promise<{ token:
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex items-center justify-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Sparkles className="size-4" />
-          </div>
-          <span className="font-heading text-lg font-semibold tracking-tight">Gridgen</span>
+        <div className="flex items-center justify-center">
+          <Image src="/gridgen-wordmark-roxo.png" alt="Gridgen" width={122} height={28} className="h-7 w-auto dark:hidden" />
+          <Image
+            src="/gridgen-wordmark-branco.png"
+            alt="Gridgen"
+            width={122}
+            height={28}
+            className="hidden h-7 w-auto dark:block"
+          />
         </div>
         <Card>
           <CardHeader>

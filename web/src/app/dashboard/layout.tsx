@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react'
+import Image from 'next/image'
 import { requireSession, serverFetch } from '@/lib/session'
 import type { Perfil, Post } from '@/lib/types'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
@@ -15,14 +15,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-3 text-sidebar-foreground">
-        <div className="mb-2 flex items-center gap-2 px-2 py-2">
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Sparkles className="size-4" />
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold">{session.conta.nome}</span>
-            <span className="font-heading text-xs text-muted-foreground">Gridgen</span>
-          </div>
+        <div className="mb-2 flex flex-col items-start gap-1 px-2 py-2">
+          <Image src="/gridgen-wordmark-roxo.png" alt="Gridgen" width={87} height={20} className="h-5 w-auto dark:hidden" />
+          <Image
+            src="/gridgen-wordmark-branco.png"
+            alt="Gridgen"
+            width={87}
+            height={20}
+            className="hidden h-5 w-auto dark:block"
+          />
+          <span className="truncate text-xs text-muted-foreground">{session.conta.nome}</span>
         </div>
 
         <SidebarNav pendentesCount={pendentes.length} />
