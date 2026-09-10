@@ -1,0 +1,61 @@
+name: Deploy to VM
+
+# Deploy MANUAL para a VM compartilhada da eknotech (botão "Run workflow" na
+# aba Actions). Nunca deploya sozinho — sempre um clique humano.
+#
+# Secrets necessárias (Settings → Secrets and variables → Actions → Secrets):
+#   VM_HOST         host/IP da VM (201.54.11.5)
+#   VM_USER         usuário SSH (ubuntu)
+#   VM_SSH_KEY      chave PRIVADA de deploy DEDICADA do Gridgen — NUNCA a
+#                   chave de CI do Gedfy nem a chave pessoal de acesso à VM
+#   VM_PROJECT_DIR  caminho do projeto na VM (/opt/gridgen)
+#
+# A VM precisa estar logada no GHCR pra puxar as imagens (feito uma vez no
+# setup: `docker login ghcr.io -u <user> --password-stdin` com um PAT
+# read:packages — ver README.md). Segredos de runtime (JWT, DB, Anthropic,
+# Resend...) vivem no .env DA VM, nunca aqui.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag da imagem a subir (latest ou o SHA de um commit)'
+        required: false
+        default: latest
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false # nunca aborta um deploy em andamento
+
+jobs:
+  deploy:
+    name: Deploy → VM compartilhada (Magalu)
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://gridgen.com.br
+    steps:
+      - name: Deploy via SSH (pull das imagens do GHCR + up)
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_DIR: ${{ secrets.VM_PROJECT_DIR }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          IMAGE_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$VM_USER@$VM_HOST" \
+            IMAGE_TAG="${IMAGE_TAG:-latest}" VM_DIR="$VM_DIR" 'bash -s' <<'EOSSH'
+          set -e
+          cd "$VM_DIR"
+          # Sincroniza compose se a VM tiver o repo clonado (senão segue com o que já está lá)
+          git pull --ff-only 2>/dev/null || echo "(sem git pull — configs geridas manualmente na VM)"
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml up -d
+          # Migrações rodam sozinhas no boot da api — sem passo extra.
+          docker compose -f docker-compose.prod.yml ps
+          EOSSH

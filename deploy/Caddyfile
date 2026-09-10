@@ -1,14 +1,21 @@
-{
-  email {$CADDY_ACME_EMAIL}
+# Este arquivo NÃO roda em lugar nenhum — o Gridgen não tem Caddy próprio na
+# VM compartilhada da eknotech (Magalu). Quem possui as portas 80/443 do host
+# é o `gedfy-caddy`, do repositório do Gedfy.
+#
+# Isto é só REFERÊNCIA: o bloco abaixo precisa ser colado no
+# `deploy/Caddyfile` do repositório do Gedfy (fonte de verdade, montada em
+# gedfy-caddy:/etc/caddy/Caddyfile) e recarregado sem downtime com:
+#
+#   docker exec gedfy-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+#
+# Troque <dominio> pelo domínio real do Gridgen (ainda não registrado).
+
+<dominio> {
+    encode gzip zstd
+    reverse_proxy gridgen-web:3000
 }
 
-# Domínios ainda placeholder — troca quando o produto tiver marca definida.
-{$APP_DOMAIN} {
-  encode zstd gzip
-  reverse_proxy web:3000
-}
-
-api.{$APP_DOMAIN} {
-  encode zstd gzip
-  reverse_proxy api:8080
+api.<dominio> {
+    encode gzip zstd
+    reverse_proxy gridgen-api:8080
 }

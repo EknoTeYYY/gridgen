@@ -1,30 +1,132 @@
 name: gridgen
 
-# Override de produção: soma o Caddy próprio deste produto (TLS automático,
-# reverse proxy) por cima do docker-compose.yml base. Uso:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Deploy na VM COMPARTILHADA da eknotech (Magalu, 201.54.11.5) — modelo
+# "serviço convidado": o `gedfy-caddy` já é dono das portas 80/443 do host e
+# faz TLS automático; este stack só entra na rede `public_web` pra ser
+# alcançado por nome de container. NUNCA publica porta nenhuma no host, nunca
+# builda na VM (imagem já vem pronta do GHCR via CI — ver
+# .github/workflows/ci.yml), nunca toca em nada com prefixo `gedfy-*`.
 #
-# Este Caddy é INDEPENDENTE do reverse proxy compartilhado (ekno-infra-edge) —
-# nada aqui referencia a rede `public_web` nem qualquer serviço hoje existente
-# na eknotech. Na mesma VM física, garantir que as portas 80/443 não colidam
-# com o Caddy já em uso pelos outros serviços é um detalhe operacional de rede
-# (ex. IP dedicado pro domínio deste produto), não uma dependência arquitetural.
-services:
-  caddy:
-    image: caddy:2.8-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    env_file: .env
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - gridgen_caddy_data:/data
-      - gridgen_caddy_config:/config
-    depends_on:
-      - api
-    networks: [gridgen-backend]
+# Uso (na VM, dentro de /opt/gridgen):
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Depois, a rota de fora pra dentro (gridgen.<dominio> -> gridgen-web:3000,
+# api.<dominio> -> gridgen-api:8080) é um bloco a mais no Caddyfile do
+# REPOSITÓRIO do Gedfy (fonte de verdade, nunca editar só na VM) — ver o
+# bloco de referência comentado no fim de deploy/Caddyfile deste repo.
+
+networks:
+  # Rede compartilhada da VM — já deve existir antes deste stack subir
+  # (criada pelo stack do Gedfy). Não é nossa, só entramos nela.
+  public_web:
+    external: true
+  # Rede privada só do Gridgen — api/render/postgres/redis conversam aqui,
+  # nada disso é alcançável de fora nem pelos outros serviços da VM.
+  gridgen-backend:
+    driver: bridge
 
 volumes:
-  gridgen_caddy_data:
-  gridgen_caddy_config:
+  gridgen_postgres:
+  # Volume compartilhado entre api e render: o worker escreve os PNGs/legenda
+  # aqui, a api lê pra servir de volta pro usuário baixar.
+  gridgen_output:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gridgen-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - gridgen_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Só a rede interna — nunca exposto, nem pra fora nem pra `public_web`.
+    networks: [gridgen-backend]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: gridgen-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [gridgen-backend]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  api:
+    image: ghcr.io/eknoteyyy/gridgen/api:latest
+    container_name: gridgen-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      OUTPUT_DIR: /data/output
+      NODE_ENV: production
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - gridgen_output:/data/output
+    # `gridgen-backend` pra falar com postgres/redis; `public_web` pra ser
+    # alcançada pelo gedfy-caddy (rota api.<dominio>) e pelo container `web`.
+    networks: [gridgen-backend, public_web]
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  render:
+    image: ghcr.io/eknoteyyy/gridgen/render:latest
+    container_name: gridgen-render
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379
+      OUTPUT_DIR: /data/output
+    depends_on:
+      redis: { condition: service_healthy }
+    volumes:
+      - gridgen_output:/data/output
+    # Nunca recebe tráfego HTTP direto (só consome a fila) — sem public_web.
+    networks: [gridgen-backend]
+    deploy:
+      resources:
+        limits:
+          # Puppeteer/Chromium headless — o mais pesado dos três.
+          memory: 1024M
+
+  web:
+    image: ghcr.io/eknoteyyy/gridgen/web:latest
+    container_name: gridgen-web
+    restart: unless-stopped
+    environment:
+      # Chama a api pelo nome do serviço dentro da `public_web` — os dois
+      # containers estão nela, então o DNS interno do Compose resolve normal.
+      API_INTERNAL_URL: http://api:8080
+      NODE_ENV: production
+    depends_on:
+      - api
+    # Só public_web: o gedfy-caddy alcança gridgen-web:3000 por aqui.
+    networks: [public_web]
+    deploy:
+      resources:
+        limits:
+          memory: 512M

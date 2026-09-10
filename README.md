@@ -16,13 +16,16 @@ reescrita como serviço multi-tenant. Histórico completo de decisões e impleme
 
 ```
 gridgen/
-├── packages/shared/   # tipos TS compartilhados entre api, web e render (contrato de dados)
-├── render/             # worker de render — Puppeteer, consome fila BullMQ
-├── api/                # Fastify + Prisma — contas, perfis, auth, IA, filas
-├── web/                # Next.js — landing pública, app logado, admin
-├── deploy/             # Caddyfile próprio deste produto (TLS automático)
-├── docker-compose.yml / docker-compose.prod.yml
-└── .env.example
+├── packages/shared/     # tipos TS compartilhados entre api, web e render (contrato de dados)
+├── render/               # worker de render — Puppeteer, consome fila BullMQ
+├── api/                  # Fastify + Prisma — contas, perfis, auth, IA, filas
+├── web/                  # Next.js — landing pública, app logado, admin
+├── deploy/Caddyfile      # bloco de referência (o Caddy de verdade é da VM, ver DEPLOY.md)
+├── .github/workflows/    # CI (typecheck + build/push GHCR) e deploy manual via SSH
+├── docker-compose.yml    # stack local de dev (build local, portas em localhost)
+├── docker-compose.prod.yml  # stack de produção (imagens do GHCR, entra na rede compartilhada)
+├── .env.example          # dev local
+└── .env.prod.example     # produção (VM compartilhada)
 ```
 
 ## Rodar localmente
@@ -43,13 +46,9 @@ docker compose up -d
 
 ## Rodar em produção
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
-
-Isso soma o Caddy próprio deste produto (reverse proxy + TLS automático via Let's Encrypt) por
-cima do stack base. Exige `APP_DOMAIN` e `CADDY_ACME_EMAIL` reais no `.env` (DNS do domínio já
-apontando pra VM) e `NODE_ENV=production`.
+Roda como serviço convidado numa VM compartilhada com outros produtos da eknotech (não tem
+Caddy/domínio próprio — usa o reverse proxy já existente na VM). Processo completo, passo a
+passo, em [`DEPLOY.md`](./DEPLOY.md).
 
 ## O que já existe hoje
 
