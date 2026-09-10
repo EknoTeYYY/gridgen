@@ -118,9 +118,11 @@ services:
     container_name: gridgen-web
     restart: unless-stopped
     environment:
-      # Chama a api pelo nome do serviço dentro da `public_web` — os dois
-      # containers estão nela, então o DNS interno do Compose resolve normal.
-      API_INTERNAL_URL: http://api:8080
+      # Nome do CONTAINER (gridgen-api), não do serviço (api) — na `public_web`
+      # (rede compartilhada com outros projetos na VM) o alias por nome de
+      # serviço podia colidir com um serviço "api" de outro stack; o nome do
+      # container é único no host inteiro, então nunca ambíguo.
+      API_INTERNAL_URL: http://gridgen-api:8080
       NODE_ENV: production
     depends_on:
       - api

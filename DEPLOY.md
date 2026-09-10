@@ -59,12 +59,16 @@ Ou, no GitHub: aba **Actions → workflow "Deploy to VM" → Run workflow** (man
 > não-interativo pelo GitHub Actions). **Nunca reaproveitar a chave pessoal
 > nem a de CI do Gedfy.**
 
-1. Adicionar a chave **pública** ao `authorized_keys` do usuário `ubuntu` na VM:
-   ```bash
-   ssh-copy-id -i ~/.ssh/id_ed25519_gridgen_deploy.pub ubuntu@201.54.11.5
-   # ou manualmente: colar o conteúdo de id_ed25519_gridgen_deploy.pub em
-   # ~/.ssh/authorized_keys na VM
-   ```
+1. ✅ **Feito** — chave **pública** adicionada ao `authorized_keys` do usuário
+   `ubuntu` na VM (append idempotente, sem duplicar as chaves já existentes).
+   > ⚠️ **Pendência de segurança, registrada, não bloqueante**: essa chave
+   > concede acesso `ubuntu` completo (igual às chaves pessoais já na VM), não
+   > só o suficiente pra fazer deploy. Antes do 1º cliente pagante, vale trocar
+   > pela versão restrita, prefixando a linha no `authorized_keys` com um
+   > `command=` forçado (só executa o pull/up do Gridgen, sem shell interativo):
+   > ```
+   > command="cd /opt/gridgen && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d",no-agent-forwarding,no-X11-forwarding,no-port-forwarding ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICbf9GmOUoYhJFyTSEpen0qMulYjmGeRN+x9CfIKJYsO gridgen-deploy-ci
+   > ```
 2. Cadastrar a chave **privada** como secret no GitHub do repo
    (Settings → Secrets and variables → Actions → New repository secret):
    - `VM_SSH_KEY` — conteúdo de `~/.ssh/id_ed25519_gridgen_deploy` (a privada, multi-linha)
