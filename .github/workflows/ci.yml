@@ -39,6 +39,15 @@ jobs:
       # pelo src/ direto — precisa buildar antes de qualquer typecheck.
       - name: build @gridgen/shared
         run: npm run build --workspace=@gridgen/shared
+      # Sem isto, o @prisma/client fica com o cliente genérico (sem os tipos
+      # do schema.prisma) — típico "any" implícito em callback de query e
+      # "Module has no exported member 'Conta'" no typecheck da api.
+      - name: gerar Prisma Client
+        # DATABASE_URL fake só pra satisfazer o `env("DATABASE_URL")` do
+        # schema — `generate` nunca conecta de verdade no banco.
+        env:
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
+        run: npm run prisma:generate --workspace=@gridgen/api
       - run: npm run typecheck --workspaces --if-present
 
   # ============================================================

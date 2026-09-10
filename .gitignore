@@ -12,3 +12,6 @@ out/
 data/
 .preview/
 *.tsbuildinfo
+# Arquivos temporários pra injetar segredo na VM sem passar pelo chat/log —
+# nunca devem ser commitados (apagar depois de usados).
+*.key
