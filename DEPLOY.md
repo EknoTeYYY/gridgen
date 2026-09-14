@@ -9,8 +9,8 @@ prontas do GHCR, publicadas pelo GitHub Actions.
 
 ```
 Internet ──► :443 gedfy-caddy ─┬─ gedfy.com.br          → gedfy (intocado)
-                                 ├─ <dominio>            → gridgen-web:3000
-                                 └─ api.<dominio>        → gridgen-api:8080
+                                 ├─ gridgen.com.br       → gridgen-web:3000
+                                 └─ api.gridgen.com.br   → gridgen-api:8080
 gridgen-postgres/redis: só rede interna (gridgen-backend), nunca expostos
 ```
 
@@ -43,16 +43,23 @@ Ou, no GitHub: aba **Actions → workflow "Deploy to VM" → Run workflow** (man
 ## Setup inicial (uma vez)
 
 ### Fase 1 · Domínio + DNS
-> **PENDÊNCIA ATUAL:** domínio do Gridgen ainda não registrado. Depois de
-> registrado, criar:
+> **Domínio já registrado**: `gridgen.com.br`. **PENDÊNCIA ATUAL:** criar os
+> registros abaixo no painel do registrador e aguardar propagar:
 
 | Tipo | Nome | Valor | TTL |
 |------|------|-------|-----|
-| `A` | `@` (ou subdomínio escolhido) | `201.54.11.5` | 300 |
+| `A` | `@` | `201.54.11.5` | 300 |
 | `A` | `api` | `201.54.11.5` | 300 |
 
 - Apex/subdomínio é sempre `A` (IP), nunca CNAME.
-- Verificar propagação: `nslookup api.<dominio> 8.8.8.8` → `201.54.11.5`.
+- Verificar propagação: `nslookup gridgen.com.br 8.8.8.8` e
+  `nslookup api.gridgen.com.br 8.8.8.8` → os dois devem responder
+  `201.54.11.5`.
+- Enquanto estiver no painel de DNS, vale já cadastrar o domínio no Resend
+  também (Settings → Domains → `gridgen.com.br`) — ele pede registros
+  próprios (SPF/DKIM) pra liberar `EMAIL_FROM` com domínio real em vez do
+  `onboarding@resend.dev` de teste. Não bloqueia o primeiro deploy, só
+  economiza uma segunda rodada de mexer no DNS.
 
 ### Fase 2 · Chave de deploy dedicada
 > Gerada localmente (`~/.ssh/id_ed25519_gridgen_deploy`, sem passphrase — uso
@@ -103,7 +110,7 @@ cp .env.prod.example .env && chmod 600 .env
 sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" .env
 sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 24)|" .env
 sed -i "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$(openssl rand -hex 32)|" .env
-sed -i "s|^WEB_APP_URL=.*|WEB_APP_URL=https://<dominio>|" .env
+sed -i "s|^WEB_APP_URL=.*|WEB_APP_URL=https://gridgen.com.br|" .env
 nano .env   # ANTHROPIC_API_KEY, PEXELS_API_KEY, RESEND_API_KEY, EMAIL_FROM
 ```
 
@@ -126,16 +133,22 @@ O Gridgen **não tem Caddy próprio**. A rota fica no repositório do Gedfy
 (`deploy/Caddyfile` de lá é a fonte de verdade). Adicionar (bloco de
 referência em `deploy/Caddyfile` deste repo):
 ```
-<dominio> {
+gridgen.com.br {
     encode gzip zstd
     reverse_proxy gridgen-web:3000
 }
 
-api.<dominio> {
+api.gridgen.com.br {
     encode gzip zstd
     reverse_proxy gridgen-api:8080
 }
 ```
+> **Só ativar depois do DNS propagado** (Fase 1) — o Caddy tenta emitir
+> certificado Let's Encrypt na hora do reload, e isso falha (ou fica preso
+> tentando) se `gridgen.com.br`/`api.gridgen.com.br` ainda não resolverem
+> pro IP da VM. Pode deixar o bloco já commitado e comentado no Caddyfile do
+> Gedfy antes disso, só descomentando quando o `nslookup` da Fase 1 confirmar.
+
 Commitar essa mudança **no repo do Gedfy** (nunca editar só na VM — um deploy
 futuro do Gedfy sobrescreveria). Depois, recarregar sem downtime:
 ```bash
@@ -156,8 +169,8 @@ UPDATE users SET "isSuperAdmin" = true WHERE email = '<email-real-da-eknotech>';
 ## Validação externa
 
 ```bash
-curl -I https://<dominio>                # 200 + cert Let's Encrypt
-curl -s https://api.<dominio>/health     # {"status":"ok"}
+curl -I https://gridgen.com.br           # 200 + cert Let's Encrypt
+curl -s https://api.gridgen.com.br/health # {"status":"ok"}
 curl -I https://gedfy.com.br             # o Gedfy TEM que continuar 200
 free -h                                  # confirma que ainda sobra RAM
 docker ps                                # gridgen-* 'Up', gedfy-* intactos

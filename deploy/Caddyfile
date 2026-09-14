@@ -8,14 +8,20 @@
 #
 #   docker exec gedfy-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 #
-# Troque <dominio> pelo domínio real do Gridgen (ainda não registrado).
+# Domínio já registrado: gridgen.com.br. Só ativar de fato (colar no Gedfy +
+# reload) depois que o DNS (registros A abaixo) estiver propagado — o Caddy
+# tenta emitir certificado Let's Encrypt na hora do reload, e isso falha se o
+# domínio ainda não resolver pro IP da VM.
+#
+#   A   @     201.54.11.5
+#   A   api   201.54.11.5
 
-<dominio> {
+gridgen.com.br {
     encode gzip zstd
     reverse_proxy gridgen-web:3000
 }
 
-api.<dominio> {
+api.gridgen.com.br {
     encode gzip zstd
     reverse_proxy gridgen-api:8080
 }

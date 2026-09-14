@@ -11,8 +11,8 @@ name: gridgen
 #   docker compose -f docker-compose.prod.yml pull
 #   docker compose -f docker-compose.prod.yml up -d
 #
-# Depois, a rota de fora pra dentro (gridgen.<dominio> -> gridgen-web:3000,
-# api.<dominio> -> gridgen-api:8080) é um bloco a mais no Caddyfile do
+# Depois, a rota de fora pra dentro (gridgen.com.br -> gridgen-web:3000,
+# api.gridgen.com.br -> gridgen-api:8080) é um bloco a mais no Caddyfile do
 # REPOSITÓRIO do Gedfy (fonte de verdade, nunca editar só na VM) — ver o
 # bloco de referência comentado no fim de deploy/Caddyfile deste repo.
 
@@ -86,7 +86,7 @@ services:
     volumes:
       - gridgen_output:/data/output
     # `gridgen-backend` pra falar com postgres/redis; `public_web` pra ser
-    # alcançada pelo gedfy-caddy (rota api.<dominio>) e pelo container `web`.
+    # alcançada pelo gedfy-caddy (rota api.gridgen.com.br) e pelo container `web`.
     networks: [gridgen-backend, public_web]
     deploy:
       resources:
