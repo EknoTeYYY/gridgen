@@ -3,7 +3,7 @@ const ATUALIZADO_EM = '31 de agosto de 2026'
 function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-heading text-xl font-bold tracking-tight">{titulo}</h2>
+      <h2 className="text-xl font-semibold tracking-tight">{titulo}</h2>
       <div className="flex flex-col gap-3 text-sm leading-relaxed text-muted-foreground">{children}</div>
     </section>
   )
@@ -12,7 +12,7 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 export default function TermosPage() {
   return (
     <div className="mx-auto max-w-2xl px-6 pt-24 pb-16">
-      <h1 className="font-heading text-3xl font-extrabold tracking-tight">Termos de Uso</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">Termos de Uso</h1>
       <p className="mt-2 text-sm text-muted-foreground">Última atualização: {ATUALIZADO_EM}</p>
 
       <p className="mt-6 rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">

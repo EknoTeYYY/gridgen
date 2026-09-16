@@ -19,17 +19,6 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
-        // Réplica literal do `.btn-cta-glow` do site real da eknotech
-        // (NavBar.vue/NavBar.css) — fundo quase-preto + borda roxa + um
-        // glow deslizante interno (pseudo-elemento `::before` animado), não
-        // um botão preenchido de roxo. Cor de marca literal (não `--primary`,
-        // que varia entre claro/escuro), porque o guia trata isso como
-        // receita de componente, não como token de tema. Exclusivo dos CTAs
-        // de conversão da LP ("Fale com a gente") — não é o botão padrão do
-        // produto (login, novo post, etc. usam `default`). Padding/altura/
-        // fonte forçados com `!important` pra não depender do `size` que o
-        // call site passar (esse variant tem forma própria, fixa).
-        cta: "relative overflow-hidden !h-auto !rounded-[10px] !px-5 !py-2 !text-base border-2 border-violet-600 bg-[#0a0a0a] text-white before:pointer-events-none before:absolute before:top-[-25%] before:h-[150%] before:w-20 before:animate-slide-glow before:content-[''] before:[background:linear-gradient(90deg,transparent_0%,rgba(167,139,250,0.15)_20%,rgba(167,139,250,0.3)_50%,rgba(167,139,250,0.15)_80%,transparent_100%)] hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

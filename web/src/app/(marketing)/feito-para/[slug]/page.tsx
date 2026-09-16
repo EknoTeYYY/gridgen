@@ -26,7 +26,7 @@ export default async function FeitoParaDetalhePage({ params }: { params: Promise
         <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <publico.icon className="size-6" />
         </div>
-        <h1 className="font-heading text-3xl font-extrabold tracking-tight text-balance">{publico.titulo}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance">{publico.titulo}</h1>
       </div>
       <p className="mt-4 text-lg text-muted-foreground">{publico.resumo}</p>
 
@@ -42,7 +42,7 @@ export default async function FeitoParaDetalhePage({ params }: { params: Promise
       </ul>
 
       <div className="mt-12 border-t pt-10">
-        <Link href="/contato" className={buttonVariants({ variant: 'cta' })}>
+        <Link href="/contato" className={buttonVariants({ size: 'lg' })}>
           Fale com a gente
         </Link>
       </div>
