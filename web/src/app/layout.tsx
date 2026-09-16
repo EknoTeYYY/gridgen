@@ -6,7 +6,9 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import './globals.css'
 
 const inter = Inter({ variable: '--font-inter', subsets: ['latin'] })
-const poppins = Poppins({ variable: '--font-poppins', subsets: ['latin'], weight: ['500', '600', '700'] })
+// 800 incluído pro h1 das páginas de marketing (IDV Eknotech,
+// docs/design-system-eknotech.md seção 3: "h1 é 800").
+const poppins = Poppins({ variable: '--font-poppins', subsets: ['latin'], weight: ['500', '600', '700', '800'] })
 
 const TITULO = 'Gridgen'
 const DESCRICAO = 'Produção de conteúdo em massa para redes sociais, com identidade de marca aplicada automaticamente.'

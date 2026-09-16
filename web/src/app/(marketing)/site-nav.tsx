@@ -44,17 +44,21 @@ function ItemGrid({
       {itens.map((item) => {
         const conteudo = (
           <>
-            <item.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            {/* Caixa de ícone 32×32 com o ícone em 16px dentro (IDV Eknotech,
+                `.nav-dropdown-icon`/`.nav-dropdown-icon svg`). */}
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-muted">
+              <item.icon className="size-4 text-muted-foreground" />
+            </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium">{item.titulo}</p>
+                <p className="text-[15px] font-medium">{item.titulo}</p>
                 {item.status === 'em breve' && (
-                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                     Em breve
                   </span>
                 )}
               </div>
-              <p className="mt-0.5 text-xs text-muted-foreground">{item.descricao}</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">{item.descricao}</p>
             </div>
           </>
         )
@@ -97,13 +101,13 @@ export function NavDropdowns() {
   }
 
   return (
-    <div ref={containerRef} className="flex items-center gap-8 text-sm">
+    <div ref={containerRef} className="flex items-center gap-7 max-lg:gap-5">
       <div className="relative">
         <button
           type="button"
           onClick={() => alternar('recursos')}
           className={cn(
-            'group relative flex items-center gap-1 py-1 transition-colors hover:text-foreground',
+            'group relative flex items-center gap-1 py-1 transition-colors max-lg:text-[15px] hover:text-foreground',
             aberto === 'recursos' ? 'text-foreground' : 'text-muted-foreground',
           )}
         >
@@ -111,13 +115,13 @@ export function NavDropdowns() {
           <ChevronDown className={cn('size-3.5 transition-transform', aberto === 'recursos' && 'rotate-180')} />
           <span
             className={cn(
-              'absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-300 ease-out group-hover:scale-x-100',
+              'absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 bg-violet-600 transition-transform duration-300 ease-out group-hover:scale-x-100',
               aberto === 'recursos' && 'scale-x-100',
             )}
           />
         </button>
         {aberto === 'recursos' && (
-          <div className="absolute top-full left-1/2 mt-3 w-[520px] -translate-x-1/2 rounded-2xl border bg-background p-3 shadow-2xl">
+          <div className="absolute top-full left-1/2 mt-5 w-[520px] -translate-x-1/2 rounded-[12px] border bg-background p-2 shadow-2xl">
             <ItemGrid itens={RECURSOS} colunas={2} hrefBase="/recursos" onNavegar={() => setAberto(null)} />
             <Link
               href="/recursos"
@@ -135,7 +139,7 @@ export function NavDropdowns() {
           type="button"
           onClick={() => alternar('integracoes')}
           className={cn(
-            'group relative flex items-center gap-1 py-1 transition-colors hover:text-foreground',
+            'group relative flex items-center gap-1 py-1 transition-colors max-lg:text-[15px] hover:text-foreground',
             aberto === 'integracoes' ? 'text-foreground' : 'text-muted-foreground',
           )}
         >
@@ -143,13 +147,13 @@ export function NavDropdowns() {
           <ChevronDown className={cn('size-3.5 transition-transform', aberto === 'integracoes' && 'rotate-180')} />
           <span
             className={cn(
-              'absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-300 ease-out group-hover:scale-x-100',
+              'absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 bg-violet-600 transition-transform duration-300 ease-out group-hover:scale-x-100',
               aberto === 'integracoes' && 'scale-x-100',
             )}
           />
         </button>
         {aberto === 'integracoes' && (
-          <div className="absolute top-full left-1/2 mt-3 w-80 -translate-x-1/2 rounded-2xl border bg-background p-3 shadow-2xl">
+          <div className="absolute top-full left-1/2 mt-5 w-[320px] -translate-x-1/2 rounded-[12px] border bg-background p-2 shadow-2xl">
             <ItemGrid itens={INTEGRACOES} colunas={1} />
           </div>
         )}
@@ -160,7 +164,7 @@ export function NavDropdowns() {
           type="button"
           onClick={() => alternar('feito-para')}
           className={cn(
-            'group relative flex items-center gap-1 py-1 transition-colors hover:text-foreground',
+            'group relative flex items-center gap-1 py-1 transition-colors max-lg:text-[15px] hover:text-foreground',
             aberto === 'feito-para' ? 'text-foreground' : 'text-muted-foreground',
           )}
         >
@@ -168,13 +172,13 @@ export function NavDropdowns() {
           <ChevronDown className={cn('size-3.5 transition-transform', aberto === 'feito-para' && 'rotate-180')} />
           <span
             className={cn(
-              'absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-300 ease-out group-hover:scale-x-100',
+              'absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 bg-violet-600 transition-transform duration-300 ease-out group-hover:scale-x-100',
               aberto === 'feito-para' && 'scale-x-100',
             )}
           />
         </button>
         {aberto === 'feito-para' && (
-          <div className="absolute top-full left-1/2 mt-3 w-80 -translate-x-1/2 rounded-2xl border bg-background p-3 shadow-2xl">
+          <div className="absolute top-full left-1/2 mt-5 w-[320px] -translate-x-1/2 rounded-[12px] border bg-background p-2 shadow-2xl">
             <ItemGrid itens={FEITO_PARA} colunas={1} hrefBase="/feito-para" onNavegar={() => setAberto(null)} />
             <Link
               href="/feito-para"

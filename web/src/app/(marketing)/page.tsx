@@ -35,7 +35,7 @@ export default async function LandingPage() {
             <Target className="size-3.5" />
             produção de conteúdo em massa, sem perder qualidade
           </span>
-          <h1 className="font-heading text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">
+          <h1 className="font-heading text-4xl leading-tight font-extrabold tracking-tight text-balance sm:text-5xl">
             Conteúdo em massa, sempre com a cara da sua marca.
           </h1>
           <p className="max-w-lg text-lg text-muted-foreground">
@@ -43,7 +43,7 @@ export default async function LandingPage() {
             visual, você aprova antes de sair.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/contato" className={buttonVariants({ size: 'lg' })}>
+            <Link href="/contato" className={buttonVariants({ variant: 'cta' })}>
               Fale com a gente
             </Link>
             <Link href="/como-funciona" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
@@ -67,7 +67,7 @@ export default async function LandingPage() {
         className="flex h-dvh snap-start flex-col justify-center overflow-y-auto border-t bg-muted/30 py-16"
       >
         <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-6 text-center">
-          <h2 className="font-heading text-3xl font-semibold tracking-tight">Cada formato, a mesma marca</h2>
+          <h2 className="font-heading text-3xl font-bold tracking-tight">Cada formato, a mesma marca</h2>
           <p className="mt-2 max-w-xl text-muted-foreground">
             Posts reais gerados pra própria eknotech.
             <br />
@@ -86,11 +86,11 @@ export default async function LandingPage() {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-violet-500 to-blue-500 opacity-[0.08] dark:opacity-[0.15]" />
         <div className="relative flex max-w-xl flex-col items-center gap-6">
-          <h2 className="font-heading text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Pronto pra testar?</h2>
+          <h2 className="font-heading text-4xl font-bold tracking-tight text-balance sm:text-5xl">Pronto pra testar?</h2>
           <p className="text-lg text-muted-foreground">
             Fale com a gente pra colocar sua agência no Gridgen e gerar o primeiro post em poucos minutos.
           </p>
-          <Link href="/contato" className={buttonVariants({ size: 'lg' })}>
+          <Link href="/contato" className={buttonVariants({ variant: 'cta' })}>
             Fale com a gente
           </Link>
         </div>
