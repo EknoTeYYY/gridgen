@@ -11,7 +11,7 @@ import type { Layout } from './post.js'
 // cabeçalho/rodapé) — variante 2 da capa não tem relação nenhuma com
 // variante 2 do uso interno do mesmo layout.
 export const VARIANTES_CAPA: Partial<Record<Layout, number>> = {
-  photo: 4,
+  photo: 5,
 }
 
 export const VARIANTES_INTERNA: Partial<Record<Layout, number>> = {

@@ -113,9 +113,9 @@ ${fonte.faces}
     .mid.photo-full .h-sans{font-family:${fonte.fontDisplay};font-size:90px;line-height:1.14;color:#fff}
     .mid.photo-full .h-sans em{color:#c4b5fd}
     .mid.photo-full .hint{color:rgba(255,255,255,.86);margin-top:26px}
-    /* 4 composições alternativas da capa (photo, full:true) — sorteada uma
+    /* 5 composições alternativas da capa (photo, full:true) — sorteada uma
        por post em montarSlidesPadrao (Slide.variante). Variante 0 é a
-       original (acima, intocada). As 3 abaixo reaproveitam .photo-bleed/
+       original (acima, intocada). As 4 abaixo reaproveitam .photo-bleed/
        .photo-bleed-fallback como fundo, só mudando o scrim (pra photo real)
        e onde o texto fica. */
     .photo-bleed .bleed-scrim-v1{position:absolute;inset:0;background:radial-gradient(120% 85% at 50% 48%, rgba(6,5,20,.3) 0%, rgba(6,5,20,.74) 100%)}
@@ -130,6 +130,14 @@ ${fonte.faces}
     .mid.photo-full-v2 .hint{color:rgba(255,255,255,.86);margin-top:22px}
     .photo-bleed .bleed-scrim-v3{position:absolute;inset:0;background:linear-gradient(to top,rgba(6,5,20,.24) 0%,rgba(6,5,20,0) 36%)}
     .mid.photo-full-v3{justify-content:flex-end}
+    /* v4: manchete estilo capa de jornal esportivo (referência real trazida
+       pelo usuário) — reaproveita o scrim mais forte já existente
+       (bleed-scrim, o mesmo da v0), só a tipografia muda: bem maior, mais
+       compacta e em caixa alta, pra "gritar" a notícia. */
+    .mid.photo-full-v4{justify-content:flex-end;padding-bottom:26px}
+    .mid.photo-full-v4 .h-sans{font-family:${fonte.fontDisplay};font-weight:800;font-size:112px;line-height:1.03;letter-spacing:-.02em;color:#fff;text-transform:uppercase}
+    .mid.photo-full-v4 .h-sans em{color:#c4b5fd}
+    .mid.photo-full-v4 .hint{color:rgba(255,255,255,.86);margin-top:24px}
     .painel-capa{background:linear-gradient(120deg,color-mix(in srgb, ${brand.corPrimaria} 92%, black),color-mix(in srgb, ${brand.corSecundaria} 88%, black));border-radius:32px;padding:44px 48px;box-shadow:0 24px 64px rgba(12,10,45,.35)}
     .painel-capa .h-sans{font-family:${fonte.fontDisplay};font-size:72px;line-height:1.16;color:#fff;margin:0}
     .painel-capa .h-sans em{color:#c4b5fd}
@@ -156,7 +164,10 @@ ${fonte.faces}
     .split-v3 .split-num{font-size:120px;width:auto}
     .mid.word-v1{text-align:center;align-items:center}
     .mid.word-v2 .h-word em{background:var(--acc);color:#fff;padding:0 .1em;border-radius:.1em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
-    .mid.word-v3{justify-content:flex-end;align-items:flex-end;text-align:right}
+    /* Ancorado à direita, mas centralizado verticalmente — não embaixo
+       (achado real: a legenda pequena grudava perto do paginador, no
+       rodapé, ficando visualmente amontoada). */
+    .mid.word-v3{justify-content:center;align-items:flex-end;text-align:right}
     .mid.item-v1{flex-direction:row;align-items:center;gap:40px}
     .item-badge-v1{width:150px;height:150px;flex:none;border-radius:50%;background:color-mix(in srgb, var(--acc) 16%, transparent);display:flex;align-items:center;justify-content:center}
     .item-badge-v1 .num{font-size:72px;line-height:1}
@@ -206,6 +217,20 @@ ${fonte.faces}
     .list-dot{width:26px;height:26px;border-radius:8px;margin-top:12px;flex:none;background:linear-gradient(135deg,${brand.corPrimaria},${brand.corSecundaria})}
     .list-txt{font-family:${fonte.fontSans};font-size:42px;line-height:1.3;font-weight:500}
     .hint{font-family:${fonte.fontMono};font-size:26px;color:var(--muted);margin-top:32px}
+    /* Gráfico de barras (estilo "grafico") — peça estática única, não faz
+       parte do sistema de variantes dos outros layouts (1 composição só, por
+       enquanto). Altura de cada barra vem calculada em TS (proporcional ao
+       maior valor do conjunto), não em CSS. */
+    .mid.grafico-mid{justify-content:flex-start}
+    .grafico-titulo{font-size:58px;line-height:1.22}
+    .grafico-subtitulo{font-family:${fonte.fontSans};font-weight:400;font-size:32px;line-height:1.4;color:var(--muted);margin:18px 0 0;max-width:36ch}
+    .grafico-barras{flex:1;display:flex;align-items:flex-end;gap:24px;padding-top:36px}
+    .grafico-coluna{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center}
+    .grafico-valor{font-family:${fonte.fontDisplay};font-weight:800;font-size:32px;line-height:1.1;margin-bottom:14px;text-align:center}
+    .grafico-barra{width:100%;max-width:110px;border-radius:12px 12px 0 0;background:var(--acc)}
+    .grafico-barra-destaque{background:linear-gradient(180deg,#22c55e,#16a34a)}
+    .grafico-rotulo{font-family:${fonte.fontSans};font-weight:700;font-size:24px;line-height:1.25;margin-top:16px;text-align:center}
+    .grafico-subrotulo{font-family:${fonte.fontMono};font-size:20px;color:var(--muted);margin-top:4px}
     .url{font-family:${fonte.fontMono};font-size:30px;color:var(--acc);margin-top:34px;letter-spacing:.02em}
     .t-light .h-display em,.t-light .h-sans em,.t-light .h-word em,.t-light .num,.t-light .split-num,.t-light .url,.t-light .list-title em,
     .t-paper .h-display em,.t-paper .h-sans em,.t-paper .num,.t-paper .split-num,.t-paper .url,.t-paper .list-title em{
@@ -254,9 +279,11 @@ function footBlock(s: Slide, i: number, t: number, A: Assets, brand: BrandKit): 
 // slide de capa do mesmo post usa a mesma composição, mas o próximo post do
 // mesmo tipo tende a sortear outra.
 function capaFotoHTML(s: Slide, hint: string): string {
-  const variante = ((s.variante ?? 0) % 4 + 4) % 4
+  const variante = ((s.variante ?? 0) % 5 + 5) % 5
   const uri = s.photoDataUri ?? ''
-  const scrimClasse = variante === 0 ? 'bleed-scrim' : `bleed-scrim-v${variante}`
+  // v4 reaproveita o mesmo scrim forte da v0 (mais confiável pra legibilidade
+  // de um texto grande e pesado) — não tem `bleed-scrim-v4` próprio.
+  const scrimClasse = variante === 0 || variante === 4 ? 'bleed-scrim' : `bleed-scrim-v${variante}`
   const bg = uri
     ? `<div class="photo-bleed"><img src="${uri}" alt=""><div class="bleed-tint"></div><div class="${scrimClasse}"></div></div>`
     : `<div class="photo-bleed-fallback"></div>`
@@ -338,6 +365,28 @@ function listHTML(s: Slide): string {
   return `<div class="mid list-mid">${hd}<div class="list">${linhas}</div></div>`
 }
 
+// Gráfico de barras (estilo "grafico") — 1 composição só, sem sistema de
+// variantes (diferente dos demais layouts). Altura de cada barra é
+// proporcional ao maior `valor` do conjunto — calculada aqui porque CSS
+// puro não sabe fazer essa conta a partir de um número arbitrário.
+const ALTURA_MAX_BARRA = 480
+
+function graficoHTML(s: Slide): string {
+  const barras = s.barras ?? []
+  const maiorValor = Math.max(1, ...barras.map((b) => b.valor))
+  const colunas = barras
+    .map((b) => {
+      const altura = Math.max(20, Math.round((b.valor / maiorValor) * ALTURA_MAX_BARRA))
+      const classe = b.destaque ? 'grafico-barra grafico-barra-destaque' : 'grafico-barra'
+      const sub = b.subrotulo ? `<span class="grafico-subrotulo">${b.subrotulo}</span>` : ''
+      return `<div class="grafico-coluna"><span class="grafico-valor">${b.valorExibido}</span><div class="${classe}" style="height:${altura}px"></div><span class="grafico-rotulo">${b.rotulo}</span>${sub}</div>`
+    })
+    .join('')
+  const subtitulo = s.text ? `<p class="grafico-subtitulo">${s.text}</p>` : ''
+  const fonte = s.hint ? `<p class="hint">${s.hint}</p>` : ''
+  return `<div class="mid grafico-mid"><div><h1 class="h-display grafico-titulo">${s.headline ?? ''}</h1>${subtitulo}</div><div class="grafico-barras">${colunas}</div>${fonte}</div>`
+}
+
 function midBlock(s: Slide, A: Assets): string {
   const L = s.layout || 'statement'
   const hint = s.hint ? `<div class="hint">${s.hint}</div>` : ''
@@ -382,6 +431,7 @@ function midBlock(s: Slide, A: Assets): string {
   if (L === 'item') return itemHTML(s)
   if (L === 'split') return splitHTML(s)
   if (L === 'list') return listHTML(s)
+  if (L === 'grafico') return graficoHTML(s)
   return `<div class="mid"><h1 class="h-display">${s.headline}</h1></div>`
 }
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ImageIcon, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
-import { camposFaltando, CAMPOS_POR_LAYOUT, type Slide } from '@gridgen/shared'
+import { camposFaltando, CAMPOS_POR_LAYOUT, type ItemGrafico, type Slide } from '@gridgen/shared'
 import type { Post } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { GraficoBarrasField } from '@/components/form/grafico-barras-field'
 import { PhotoSlideField } from '@/components/form/photo-slide-field'
 import { redeAtivaResolvida, type RedeSocial } from '@/components/redes-sociais-icons'
 import { PostProntoDetalhe } from '../post-pronto-detalhe'
@@ -228,6 +229,16 @@ export function PostStatus({
                         value={typeof valorAtual === 'string' ? valorAtual : ''}
                         onChange={(valor) => atualizarSlide(i, campo.nome, valor)}
                         ehCapa={slide.full === true}
+                      />
+                    )
+                  }
+                  if (campo.tipo === 'grafico-itens') {
+                    return (
+                      <GraficoBarrasField
+                        key={campo.nome}
+                        label={campo.label}
+                        value={valorAtual as ItemGrafico[] | undefined}
+                        onChange={(valor) => atualizarSlide(i, campo.nome, valor)}
                       />
                     )
                   }

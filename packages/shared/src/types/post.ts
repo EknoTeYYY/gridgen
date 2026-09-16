@@ -10,6 +10,7 @@ export type Layout =
   | 'photo'
   | 'cta'
   | 'tweet'
+  | 'grafico'
 
 export type Tema = 'ink' | 'brand' | 'light' | 'paper'
 
@@ -18,9 +19,28 @@ export type Tema = 'ink' | 'brand' | 'light' | 'paper'
  * visualmente, não O QUE ele diz (isso continua sendo o `tipo`). "padrao" é
  * o motor de sempre (photo/split/word/etc., por receita do tipo); "tweet"
  * reaproveita a mesma narrativa do tipo, só que desdobrada em cards estilo
- * publicação de rede social (avatar + nome + @ + texto), sem foto nenhuma.
+ * publicação de rede social (avatar + nome + @ + texto), sem foto nenhuma;
+ * "grafico" é uma peça estática única (não um carrossel) com um gráfico de
+ * barras — igual ao "tweet", ignora a sequência de layouts da receita e
+ * sempre produz 1 slide só, do layout `grafico`.
  */
-export type EstiloVisual = 'padrao' | 'tweet'
+export type EstiloVisual = 'padrao' | 'tweet' | 'grafico'
+
+/**
+ * Uma barra do layout `grafico`. `valor` é só pra calcular a altura
+ * proporcional da barra (nunca aparece na imagem); `valorExibido` é o texto
+ * de verdade mostrado acima dela — o usuário escreve formatado do jeito que
+ * quiser ("US$ 30 bi", "79.390"), o motor não tenta adivinhar formatação de
+ * número. Sempre preenchido manualmente (nunca pela IA — risco real de
+ * alucinar dado factual e apresentar como estatística verdadeira).
+ */
+export interface ItemGrafico {
+  rotulo: string
+  valor: number
+  valorExibido: string
+  subrotulo?: string
+  destaque?: boolean
+}
 
 export type TipoConteudo = 'ancora' | 'dor' | 'prova' | 'didatico' | 'dado' | 'oferta'
 
@@ -48,6 +68,7 @@ export interface Slide {
   url?: string
   photoDataUri?: string
   full?: boolean
+  barras?: ItemGrafico[]
   // Índice de composição visual alternativa pro mesmo layout (0-based) — o
   // MOTOR decide como um `photo`/`split`/`word`/etc. fica em tela, o `tipo`
   // continua decidindo o que dizer. Sorteado uma vez por layout na hora de

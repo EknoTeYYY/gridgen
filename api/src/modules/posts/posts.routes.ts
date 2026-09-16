@@ -128,12 +128,14 @@ export default async function postsRoutes(app: FastifyInstance) {
     const post = await app.prisma.post.findFirst({ where: { id, perfil: { contaId } } })
     if (!post) return reply.code(404).send({ erro: 'post não encontrado' })
 
-    // O card do estilo "tweet" é exclusivo do Instagram — não existe
-    // equivalente em LinkedIn/TikTok (a adaptação dessas redes reaproveitaria
-    // cards com avatar/@ do Instagram escritos pra parecer uma publicação de
-    // lá, sem sentido nenhum publicado em outro lugar).
-    if (post.estiloVisual === 'tweet') {
-      return reply.code(400).send({ erro: 'o estilo Tweet é exclusivo do Instagram, não dá pra marcar redes extras' })
+    // Tweet é exclusivo do Instagram (card de publicação de rede social não
+    // faz sentido em outro lugar). Gráfico permite só LinkedIn — o mesmo
+    // gráfico de barras reaproveitado, com título/legenda reescritos pro tom
+    // de lá (infográfico/dado converte bem no LinkedIn, validado com o
+    // usuário); TikTok continua fora, formato de vídeo curto não combina com
+    // uma peça estática de dado.
+    if (post.estiloVisual === 'tweet' || (post.estiloVisual === 'grafico' && canal !== 'linkedin')) {
+      return reply.code(400).send({ erro: 'esse estilo não permite marcar essa rede extra' })
     }
 
     const existente = await app.prisma.saidaEntrega.findFirst({ where: { postId: id, canal } })

@@ -278,6 +278,10 @@ model Post {
   // social (avatar+nome+@+texto, sem foto) — mesma narrativa do tipo, outra
   // composição visual. Fixo desde a criação, igual `tipo`/`formato`.
   estiloVisual String     @default("padrao")
+  // Como o slide final de CTA converte ("comentario"/"whatsapp"/"lp"/
+  // "link_bio") — decide só o texto de destino mostrado nele (resolvido a
+  // partir do Perfil, nunca da IA). Fixo desde a criação, igual `estiloVisual`.
+  metodoConversao String  @default("comentario")
   status    PostStatus  @default(rascunho)
   origem    PostOrigem  @default(adhoc)
   // Preenchidos só quando origem = agenda — identificam de qual data

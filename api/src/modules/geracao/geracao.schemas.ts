@@ -14,14 +14,27 @@ export const gerarComIaSchema = z
     redes: z.array(z.enum(['linkedin', 'tiktok'])).default([]),
     // Eixo independente do tipo: "padrao" é o carrossel de sempre; "tweet" é o
     // card estilo publicação de rede social (não é uma rede nova — publica no
-    // próprio Instagram). `fundoClaro` só importa quando estilo === 'tweet'.
-    estilo: z.enum(['padrao', 'tweet']).default('padrao'),
+    // próprio Instagram); "grafico" é uma peça estática única com um gráfico
+    // de barras. `fundoClaro` só importa pros dois estilos de 1 slide só.
+    estilo: z.enum(['padrao', 'tweet', 'grafico']).default('padrao'),
     fundoClaro: z.boolean().default(true),
+    // Como o slide final de CTA converte — vazio usa o padrão do tipo (ver
+    // METODO_CONVERSAO_PADRAO). Só se aplica ao estilo "padrao" (Tweet/Gráfico
+    // não têm slide de CTA).
+    metodoConversao: z.enum(['comentario', 'whatsapp', 'lp', 'link_bio']).optional(),
   })
-  // Tweet é um card exclusivo do Instagram (não existe em LinkedIn/TikTok) —
-  // mesma regra já aplicada na UI (desabilita o toggle de redes extras),
-  // repetida aqui porque a UI sozinha nunca é garantia.
-  .refine((body) => body.estilo !== 'tweet' || body.redes.length === 0, {
-    message: 'o estilo Tweet é exclusivo do Instagram — não é possível marcar redes extras junto com ele',
-    path: ['redes'],
-  })
+  // Tweet é exclusivo do Instagram; Gráfico permite só LinkedIn (infográfico
+  // reaproveitado, converte bem lá — TikTok não combina, formato de vídeo
+  // curto). Mesma regra já aplicada na UI, repetida aqui porque a UI sozinha
+  // nunca é garantia.
+  .refine(
+    (body) => {
+      if (body.estilo === 'tweet') return body.redes.length === 0
+      if (body.estilo === 'grafico') return body.redes.every((r) => r === 'linkedin')
+      return true
+    },
+    {
+      message: 'o estilo Tweet não permite redes extras, e o estilo Gráfico só permite LinkedIn',
+      path: ['redes'],
+    },
+  )

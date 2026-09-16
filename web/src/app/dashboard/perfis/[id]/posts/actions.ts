@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import type { Formato, TipoConteudo } from '@gridgen/shared'
+import type { EstiloVisual, Formato, MetodoConversao, TipoConteudo } from '@gridgen/shared'
 import { ServerFetchError, serverFetch } from '@/lib/session'
 import type { Post } from '@/lib/types'
 
@@ -18,8 +18,9 @@ export async function gerarPostComIA(
     nome?: string
     briefing?: string
     redes?: ('linkedin' | 'tiktok')[]
-    estilo?: 'padrao' | 'tweet'
+    estilo?: EstiloVisual
     fundoClaro?: boolean
+    metodoConversao?: MetodoConversao
   },
 ): Promise<ResultadoAcao> {
   let post: Post

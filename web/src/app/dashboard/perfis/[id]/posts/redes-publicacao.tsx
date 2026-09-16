@@ -82,6 +82,10 @@ export function RedesPublicacao({
       toast.error('O estilo Tweet é exclusivo do Instagram — não dá pra marcar redes extras.')
       return
     }
+    if (post.estiloVisual === 'grafico' && rede === 'tiktok') {
+      toast.error('TikTok não combina com o estilo Gráfico — só LinkedIn é permitido.')
+      return
+    }
     const saidaAtual = post.saidas?.find((s) => s.canal === rede)
     const selecionada = redesDoPost(post.saidas).includes(rede)
     if (selecionada && temConteudo(saidaAtual)) {
@@ -164,15 +168,17 @@ export function RedesPublicacao({
           const Icon = REDE_ICON[rede]
           const saidaRede = post.saidas?.find((s) => s.canal === rede)
           const selecionada = redesDoPost(post.saidas).includes(rede)
-          const ehTweet = post.estiloVisual === 'tweet'
-          const travada = (selecionada && temConteudo(saidaRede)) || ehTweet
+          const bloqueadoPeloEstilo = post.estiloVisual === 'tweet' || (post.estiloVisual === 'grafico' && rede === 'tiktok')
+          const travada = (selecionada && temConteudo(saidaRede)) || bloqueadoPeloEstilo
           return (
             <button
               key={rede}
               type="button"
               title={
-                ehTweet
-                  ? 'O estilo Tweet é exclusivo do Instagram — não dá pra marcar redes extras'
+                bloqueadoPeloEstilo
+                  ? post.estiloVisual === 'tweet'
+                    ? 'O estilo Tweet é exclusivo do Instagram'
+                    : 'TikTok não combina com o estilo Gráfico'
                   : selecionada && temConteudo(saidaRede)
                     ? `${REDE_LABEL[rede]} já tem conteúdo gerado — não dá pra desmarcar`
                     : selecionada
@@ -189,7 +195,7 @@ export function RedesPublicacao({
             >
               {alternandoRede === rede ? (
                 <Loader2 className="size-3.5 animate-spin" />
-              ) : ehTweet ? (
+              ) : bloqueadoPeloEstilo ? (
                 <Lock className="size-3" />
               ) : selecionada && temConteudo(saidaRede) ? (
                 <Lock className="size-3" />

@@ -103,6 +103,20 @@ const SLIDES: Slide[] = [
     headline: 'Painel sólido embaixo.',
     hint: 'card separado da foto, não um degradê',
   },
+  // Variante 4 — manchete estilo capa de jornal esportivo (referência real:
+  // CazéTV/Instagram). Texto bem maior, em caixa alta, sobre o mesmo scrim
+  // forte da v0.
+  {
+    layout: 'photo',
+    theme: 'ink',
+    full: true,
+    logoTop: true,
+    variante: 4,
+    photoDataUri: FOTO_CENA_TESTE,
+    kicker: 'variante 4',
+    headline: 'Contrato fechado, <em>oficial</em>.',
+    hint: 'manchete grande, caixa alta',
+  },
   // Variante 3 sem foto — confirma que o fallback de gradiente ainda funciona
   // (o painel sólido não depende de foto por trás pra ficar legível).
   {
@@ -245,6 +259,37 @@ const SLIDES: Slide[] = [
     photoDataUri: FOTO_CENA_TESTE,
     headline: 'Faixa colorida <em>emendada</em>',
     hint: 'moldura quadrada + tag',
+  },
+  // Estilo "grafico" (item avaliado a partir de referência real do usuário —
+  // infográfico de barras estilo Snaq/LinkedIn). Réplica próxima do exemplo
+  // real: 7 barras, uma destacada, com sub-rótulo (ano) embaixo do nome.
+  {
+    layout: 'grafico',
+    theme: 'ink',
+    logoTop: true,
+    headline: 'Quantas pessoas uma empresa precisa pra gerar US$ 30 bilhões?',
+    text: 'Número de funcionários no ano em que cada empresa alcançou faturamento da ordem de US$ 30 bilhões anuais.',
+    hint: '*Estimativa. Fonte: dados agregados de fontes públicas.',
+    barras: [
+      { rotulo: 'Exemplo A', valor: 5000, valorExibido: '5.000', subrotulo: '2026', destaque: true },
+      { rotulo: 'Exemplo B', valor: 11300, valorExibido: '11.300', subrotulo: '2021' },
+      { rotulo: 'Exemplo C', valor: 17048, valorExibido: '17.048', subrotulo: '2016' },
+      { rotulo: 'Exemplo D', valor: 26196, valorExibido: '26.196', subrotulo: '2023' },
+      { rotulo: 'Exemplo E', valor: 32000, valorExibido: '32.000', subrotulo: '2011' },
+      { rotulo: 'Exemplo F', valor: 55000, valorExibido: '55.000', subrotulo: '2003' },
+      { rotulo: 'Exemplo G', valor: 79390, valorExibido: '79.390', subrotulo: '2023' },
+    ],
+  },
+  // Tema claro + caso mínimo (2 barras, sem sub-rótulo nem fonte).
+  {
+    layout: 'grafico',
+    theme: 'light',
+    logoTop: true,
+    headline: 'Duas barras só, tema claro, sem observação.',
+    barras: [
+      { rotulo: 'Antes', valor: 40, valorExibido: '40%' },
+      { rotulo: 'Depois', valor: 92, valorExibido: '92%', destaque: true },
+    ],
   },
 ]
 

@@ -60,7 +60,13 @@ export default fp(async (app: FastifyInstance) => {
 
       let adaptado
       try {
-        adaptado = await adaptarRascunhoParaRede(post.tipo as never, contexto?.conteudoMarkdown ?? '', slidesDoJson(post.slides), canal)
+        adaptado = await adaptarRascunhoParaRede(
+          post.tipo as never,
+          contexto?.conteudoMarkdown ?? '',
+          slidesDoJson(post.slides),
+          canal,
+          post.estiloVisual as never,
+        )
       } catch (err) {
         app.log.error(err, `falha ao preparar rede "${canal}" automaticamente pro post ${postId}`)
         await marcarErro(app, postId, canal)

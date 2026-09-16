@@ -14,6 +14,7 @@ const slideSchema = z
       'photo',
       'cta',
       'tweet',
+      'grafico',
     ]),
     theme: z.enum(['ink', 'brand', 'light', 'paper']).optional(),
     kicker: z.string().optional(),

@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
-import { receitaDe, TIPOS, type BrandKit, type RenderJobPayload, type Slide, type TipoConteudo } from '@gridgen/shared'
+import { receitaDe, TIPOS, type BrandKit, type MetodoConversao, type RenderJobPayload, type Slide, type TipoConteudo } from '@gridgen/shared'
 
 // Prisma tipa a coluna Json como JsonValue (leitura) / InputJsonValue
 // (escrita) — nenhum dos dois casa direto com Slide[], então o cast passa
@@ -46,6 +46,15 @@ export async function proximoSlugDePost(
 // telas a narrativa precisa), mas a sequência de layouts não se aplica — todo
 // slide é `tweet`, não `photo/split/word/...`.
 export function validarSlidesContraReceita(tipo: TipoConteudo, slides: Slide[], estiloVisual = 'padrao'): string | null {
+  // Peça estática única, independente da receita do tipo (mesmo espírito do
+  // "tweet", só que a contagem de slides também não se aplica aqui — sempre
+  // exatamente 1, do layout `grafico`).
+  if (estiloVisual === 'grafico') {
+    if (slides.length !== 1 || slides[0].layout !== 'grafico') {
+      return `no estilo "gráfico" o post deveria ter 1 slide só, do layout "grafico"`
+    }
+    return null
+  }
   const receita = receitaDe(tipo)
   if (slides.length !== receita.receita.length) {
     return `a receita de "${tipo}" espera ${receita.receita.length} slides, vieram ${slides.length}`
@@ -88,6 +97,23 @@ export function extrairHandleInstagram(valor: string | null): string | null {
   const semQuery = semBarras.split(/[?#]/)[0].trim()
   const usuario = semQuery.replace(/^@/, '')
   return usuario ? `@${usuario}` : null
+}
+
+// Destino mostrado no slide final de CTA — nunca inventado pela IA (ver
+// `DIRECAO_CONVITE_POR_METODO`/`schemaParaLayout`). Resolvido aqui, a partir
+// de dado real do Perfil, pros métodos que precisam de um; "comentario"
+// nunca precisou de nada, "link_bio" é sempre o mesmo texto fixo (não
+// depende do Perfil ter link nenhum configurado). Perfil sem o dado
+// necessário (telefone/site vazio) simplesmente devolve string vazia — o
+// slide sai só com o convite, sem destino, sem bloquear a geração.
+export function textoConversao(
+  metodo: MetodoConversao,
+  perfil: { telefoneContato: string | null; url: string | null },
+): string {
+  if (metodo === 'whatsapp') return perfil.telefoneContato ?? ''
+  if (metodo === 'lp') return perfil.url ?? ''
+  if (metodo === 'link_bio') return 'Link na bio'
+  return ''
 }
 
 export function brandKitDoPerfil(perfil: {

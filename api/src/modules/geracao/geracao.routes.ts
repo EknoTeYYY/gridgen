@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify'
-import type { RedeSocial } from '@gridgen/shared'
+import { METODO_CONVERSAO_PADRAO, type RedeSocial } from '@gridgen/shared'
 import { resolverImagemAutomatica } from '../../lib/imagem-automatica.js'
 import { idDoJobPrepararRede } from '../../plugins/preparar-redes.js'
-import { extrairHandleInstagram, proximoSlugDePost, slidesDoJson, slidesParaJson } from '../posts/posts.service.js'
+import { extrairHandleInstagram, proximoSlugDePost, slidesDoJson, slidesParaJson, textoConversao } from '../posts/posts.service.js'
 import { adaptarRascunhoParaRede, gerarRascunhoComIA } from './geracao.service.js'
 import { gerarComIaSchema } from './geracao.schemas.js'
 
@@ -30,6 +30,7 @@ export default async function geracaoRoutes(app: FastifyInstance) {
     }
 
     const contexto = await app.prisma.contextoMarkdown.findUnique({ where: { perfilId } })
+    const metodoConversao = body.metodoConversao ?? METODO_CONVERSAO_PADRAO[body.tipo]
 
     let rascunho
     try {
@@ -40,6 +41,7 @@ export default async function geracaoRoutes(app: FastifyInstance) {
         body.nome,
         body.estilo,
         body.fundoClaro ? 'light' : 'ink',
+        metodoConversao,
       )
     } catch (err) {
       // O detalhe real (chave ausente, erro da API da Anthropic, etc.) fica só
@@ -67,6 +69,12 @@ export default async function geracaoRoutes(app: FastifyInstance) {
       )
     }
 
+    // O slide de CTA (quando existe na receita do tipo) nunca tem a URL
+    // preenchida pela IA (excluída do schema em `schemaParaLayout`) — resolve
+    // aqui, a partir de dado real do Perfil, nunca inventado.
+    const slideCta = rascunho.slides.find((s) => s.layout === 'cta')
+    if (slideCta) slideCta.url = textoConversao(metodoConversao, perfil)
+
     // `rascunho.nomePost` já resolve pro nome certo (manual, se o usuário deu
     // um; senão o que a IA sugeriu) — mesmo parâmetro `tituloPersonalizado`
     // já usado pelo calendário sazonal pra nomear posts pela campanha.
@@ -81,6 +89,7 @@ export default async function geracaoRoutes(app: FastifyInstance) {
         hashtags: rascunho.hashtags,
         slides: slidesParaJson(rascunho.slides),
         estiloVisual: body.estilo,
+        metodoConversao,
       },
     })
 
@@ -115,7 +124,13 @@ export default async function geracaoRoutes(app: FastifyInstance) {
 
     let adaptado
     try {
-      adaptado = await adaptarRascunhoParaRede(post.tipo as never, contexto?.conteudoMarkdown ?? '', slidesDoJson(post.slides), rede)
+      adaptado = await adaptarRascunhoParaRede(
+        post.tipo as never,
+        contexto?.conteudoMarkdown ?? '',
+        slidesDoJson(post.slides),
+        rede,
+        post.estiloVisual as never,
+      )
     } catch (err) {
       app.log.error(err, 'falha ao adaptar post pra rede')
       return reply.code(502).send({ erro: 'Não foi possível adaptar o conteúdo agora. Tente novamente em instantes.' })

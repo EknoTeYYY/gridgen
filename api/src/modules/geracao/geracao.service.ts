@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import {
   CAMPOS_POR_LAYOUT,
+  DIRECAO_CONVITE_POR_METODO,
   ESTILO_LEGENDA_POR_REDE,
   LIMITES_HASHTAG_POR_REDE,
   montarSlidesPadrao,
@@ -9,6 +10,7 @@ import {
   type CampoSlide,
   type EstiloVisual,
   type Layout,
+  type MetodoConversao,
   type RedeSocial,
   type Slide,
   type Tema,
@@ -38,9 +40,25 @@ function schemaDoCampo(campo: CampoSlide): Record<string, unknown> {
 // ajuda), mas no estilo "padrão" o layout `photo` só existe na receita
 // JUSTAMENTE pra carregar uma foto — ali a sugestão é obrigatória, não uma
 // escolha da IA.
-function schemaParaLayout(layout: Layout, sugerirImagem: boolean, exigirImagem: boolean): Record<string, unknown> {
+function schemaParaLayout(
+  layout: Layout,
+  sugerirImagem: boolean,
+  exigirImagem: boolean,
+  metodoConversao?: MetodoConversao,
+): Record<string, unknown> {
   const camposLayout = CAMPOS_POR_LAYOUT[layout] ?? []
-  const campos = camposLayout.filter((c) => c.tipo !== 'foto')
+  // `grafico-itens` nunca vai pro schema da IA — dado numérico real, sempre
+  // digitado manualmente (risco de alucinação de fato inaceitável aqui).
+  // `url` (só existe no layout `cta`) também nunca vai — é sempre resolvida
+  // no servidor a partir do Perfil (telefone/site) ou um texto fixo,
+  // conforme o método de conversão (ver MetodoConversao), nunca inventada.
+  const campos = camposLayout
+    .filter((c) => c.tipo !== 'foto' && c.tipo !== 'grafico-itens' && c.tipo !== 'url')
+    .map((c) =>
+      layout === 'cta' && c.nome === 'headline' && metodoConversao
+        ? { ...c, direcaoIA: DIRECAO_CONVITE_POR_METODO[metodoConversao] }
+        : c,
+    )
   const properties: Record<string, unknown> = { layout: { type: 'string', const: layout } }
   const required: string[] = ['layout']
   for (const campo of campos) {
@@ -73,6 +91,7 @@ function montarFerramentaGeracao(
     incluirNome?: boolean
     sugerirImagem?: boolean
     exigirImagem?: boolean
+    metodoConversao?: MetodoConversao
   } = {},
 ): Anthropic.Tool {
   const {
@@ -81,6 +100,7 @@ function montarFerramentaGeracao(
     incluirNome = false,
     sugerirImagem = false,
     exigirImagem = false,
+    metodoConversao,
   } = opcoes
 
   const properties: Record<string, unknown> = {
@@ -89,7 +109,7 @@ function montarFerramentaGeracao(
     slides: {
       type: 'array',
       description: 'Conteúdo de cada slide, na mesma ordem e quantidade da receita.',
-      items: { anyOf: layoutsDistintos.map((l) => schemaParaLayout(l, sugerirImagem, exigirImagem)) },
+      items: { anyOf: layoutsDistintos.map((l) => schemaParaLayout(l, sugerirImagem, exigirImagem, metodoConversao)) },
     },
   }
   const required = ['caption', 'hashtags', 'slides']
@@ -231,13 +251,14 @@ export async function gerarRascunhoComIA(
   briefing?: string,
   nomeManual?: string,
   estilo: EstiloVisual = 'padrao',
-  temaTweet: Tema = 'ink',
+  temaAlternativo: Tema = 'ink',
+  metodoConversao?: MetodoConversao,
 ): Promise<RascunhoGerado> {
   const receita = receitaDe(tipo)
-  const skeleton = montarSlidesPadrao(tipo, estilo, temaTweet)
-  // Deriva do esqueleto de verdade, não de `receita.receita` — no estilo
-  // "tweet" isso já vira só `['tweet']`, mesmo a receita original tendo
-  // vários layouts diferentes (photo/split/word/...).
+  const skeleton = montarSlidesPadrao(tipo, estilo, temaAlternativo)
+  // Deriva do esqueleto de verdade, não de `receita.receita` — nos estilos
+  // "tweet"/"grafico" isso já vira só `['tweet']`/`['grafico']`, mesmo a
+  // receita original tendo vários layouts diferentes (photo/split/word/...).
   const layoutsDistintos = [...new Set(skeleton.map((s) => s.layout))]
   // Se o usuário já deu um nome, não precisa pedir pra IA inventar um — só
   // usa o dele. Sem nome manual, pede pra IA sugerir um (em vez de deixar o
@@ -251,6 +272,7 @@ export async function gerarRascunhoComIA(
     incluirNome: !nomeManual,
     sugerirImagem: true,
     exigirImagem: estilo === 'padrao',
+    metodoConversao,
   })
 
   const prompt = [
@@ -258,7 +280,9 @@ export async function gerarRascunhoComIA(
     `Tom: ${receita.tom}`,
     estilo === 'tweet'
       ? `Este post vai ser publicado como um carrossel de ${skeleton.length} cards no estilo "publicação de rede social", formando uma thread — cada card é uma continuação do anterior, seguindo a mesma progressão narrativa que a receita original deste tipo usaria (${receita.receita.join(' → ')}), só que cada etapa vira um card de texto em vez de foto/gráfico. IMPORTANTE: esse formato existe pra reter quem JÁ segue o perfil com conteúdo que vale a pena ler — cada card precisa ter um parágrafo completo e explicativo (uma ou duas frases de verdade, com profundidade e contexto), NUNCA uma palavra solta, um número isolado ou uma frase de efeito curta demais (nada como "4h → 8min" ou "Silêncio." sozinho num card — isso quebra a premissa do formato). O primeiro card é o gancho; os do meio desenvolvem com profundidade real; o último fecha com a chamada pra ação.`
-      : `Receita de layouts, nesta ordem exata: ${receita.receita.join(' → ')}. Pra cada slide de layout "photo", sugira também que foto buscar (campos buscaImagem/buscaImagemPexels) — ela é buscada automaticamente a partir dessa descrição, você não precisa se preocupar em como.`,
+      : estilo === 'grafico'
+        ? `Este post é uma peça única (não um carrossel) com um gráfico de barras — escreva só o título e o subtítulo (o campo "barras", com os números de verdade, é preenchido manualmente depois por quem usa a ferramenta, você NÃO tem esse dado). O título precisa funcionar sozinho como a pergunta/afirmação que o gráfico responde.`
+        : `Receita de layouts, nesta ordem exata: ${receita.receita.join(' → ')}. Pra cada slide de layout "photo", sugira também que foto buscar (campos buscaImagem/buscaImagemPexels) — ela é buscada automaticamente a partir dessa descrição, você não precisa se preocupar em como.`,
     receita.nota ? `Como usar essa receita: ${receita.nota}` : null,
     `Chamada pra ação: ${receita.cta}`,
     `Como esse tipo deveria se destacar na grade do perfil: ${receita.naGrade}`,
@@ -287,18 +311,23 @@ export async function adaptarRascunhoParaRede(
   contextoMarkdown: string,
   slidesAtuais: Slide[],
   rede: RedeSocial,
+  estiloVisual: EstiloVisual = 'padrao',
 ): Promise<RascunhoGerado> {
   const receita = receitaDe(tipo)
   const limite = LIMITES_HASHTAG_POR_REDE[rede]
   const nomeRede = REDE_NOME[rede]
   const estiloLegenda = ESTILO_LEGENDA_POR_REDE[rede]
+  const ehGraficoParaLinkedin = rede === 'linkedin' && estiloVisual === 'grafico'
 
-  // LinkedIn não funciona como carrossel: uma imagem só (a capa do tipo,
-  // reescrita como gancho) + legenda grande fazendo o trabalho de explicar —
-  // é assim que a rede converte de verdade (validado pelo usuário na prática).
-  // Instagram/TikTok continuam reaproveitando a mesma estrutura do post
-  // principal, como já era.
-  const skeleton: Slide[] = rede === 'linkedin' ? montarSlidesPadrao(tipo).slice(0, 1) : slidesAtuais
+  // LinkedIn não funciona como carrossel: uma imagem só. Pro estilo "padrao"
+  // isso vira a capa do tipo reescrita como gancho (a explicação fica pra
+  // legenda, grande e explicativa). Pro estilo "grafico" o post JÁ é 1
+  // imagem só (o gráfico de barras) — reaproveita ele direto, nunca troca
+  // pela capa do tipo (perderia o gráfico inteiro, incluindo os números
+  // reais). Instagram/TikTok continuam reaproveitando a mesma estrutura do
+  // post principal, como já era.
+  const skeleton: Slide[] =
+    rede === 'linkedin' ? (estiloVisual === 'grafico' ? slidesAtuais : montarSlidesPadrao(tipo).slice(0, 1)) : slidesAtuais
   const layoutsDistintos = [...new Set(skeleton.map((s) => s.layout))]
 
   const ferramenta = montarFerramentaGeracao(tipo, layoutsDistintos, {
@@ -306,8 +335,9 @@ export async function adaptarRascunhoParaRede(
     captionDescricao: `Legenda pro ${nomeRede}. ${estiloLegenda}`,
   })
 
-  const instrucaoEstrutura =
-    rede === 'linkedin'
+  const instrucaoEstrutura = ehGraficoParaLinkedin
+    ? `Este post é um gráfico de barras (não um carrossel), e a imagem final pro LinkedIn é a MESMA peça original: só o título e o subtítulo são reescritos pro tom do LinkedIn (mais consultivo, menos vendedor). Os números do gráfico já são reais e fixos, escolhidos manualmente por quem usa a ferramenta — você não tem esse dado e nunca deve inventar um novo.`
+    : rede === 'linkedin'
       ? `O LinkedIn não funciona como carrossel: gere só 1 imagem (layout "${skeleton[0].layout}"). Ela precisa funcionar sozinha como gancho, não como explicação — o texto dessa imagem deve despertar curiosidade e puxar quem vê pra ler a legenda, nunca tentar contar a história inteira ali. É a legenda (grande, explicativa) que carrega o conteúdo de verdade.`
       : `Adapte o conteúdo do post abaixo pra publicar no ${nomeRede}, mantendo exatamente a mesma quantidade e ordem de slides (${skeleton.map((s) => s.layout).join(' → ')}).`
 

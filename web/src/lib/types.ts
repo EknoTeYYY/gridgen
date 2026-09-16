@@ -62,7 +62,8 @@ export interface Post {
   caption: string
   hashtags: string
   slides: import('@gridgen/shared').Slide[]
-  estiloVisual: 'padrao' | 'tweet'
+  estiloVisual: import('@gridgen/shared').EstiloVisual
+  metodoConversao: import('@gridgen/shared').MetodoConversao
   status: PostStatus
   origem: 'adhoc' | 'agenda'
   campanhaSlug: string | null

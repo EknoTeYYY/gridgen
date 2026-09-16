@@ -11,10 +11,17 @@ import { sortearVariante, VARIANTES_CAPA, VARIANTES_INTERNA } from './variantes.
 // no estilo "tweet", só a quantidade de slides da receita é reaproveitada,
 // não a sequência de layouts nem o tratamento de capa (tema/full/logoTop não
 // se aplicam a um card de tweet, que tem sua própria composição fixa).
-export function montarSlidesPadrao(tipo: TipoConteudo, estilo: EstiloVisual = 'padrao', temaTweet: Tema = 'ink'): Slide[] {
+export function montarSlidesPadrao(tipo: TipoConteudo, estilo: EstiloVisual = 'padrao', temaAlternativo: Tema = 'ink'): Slide[] {
   const receita = receitaDe(tipo)
   if (estilo === 'tweet') {
-    return receita.receita.map(() => ({ layout: 'tweet' as Layout, theme: temaTweet }))
+    return receita.receita.map(() => ({ layout: 'tweet' as Layout, theme: temaAlternativo }))
+  }
+  // Peça estática única, não um carrossel narrativo — a contagem de slides
+  // da receita não se aplica aqui (diferente do "tweet", que reaproveita a
+  // contagem). O conteúdo numérico (`barras`) nunca vem da IA, então nasce
+  // vazio: o usuário preenche na tela de edição antes de gerar a imagem.
+  if (estilo === 'grafico') {
+    return [{ layout: 'grafico' as Layout, theme: temaAlternativo, logoTop: true }]
   }
 
   // Sorteia 1 variante por combinação (layout, capa ou uso interno) presente
@@ -44,7 +51,7 @@ export function montarSlidesPadrao(tipo: TipoConteudo, estilo: EstiloVisual = 'p
   })
 }
 
-export type TipoCampoSlide = 'texto' | 'texto-longo' | 'numero' | 'lista' | 'foto' | 'url'
+export type TipoCampoSlide = 'texto' | 'texto-longo' | 'numero' | 'lista' | 'foto' | 'url' | 'grafico-itens'
 
 export interface CampoSlide {
   nome: keyof Slide
@@ -84,7 +91,19 @@ const KICKER: CampoSlide = {
   direcaoIA:
     'Uma etiqueta curta (2-4 palavras) que ancora a cena ESPECÍFICA desse slide — algo como "A CENA DE DOMINGO", "ENQUANTO ISSO", "O DADO REAL". NUNCA o nome do tipo de conteúdo ou uma categoria genérica (proibido: "DOR", "DADO", "PROVA", "OFERTA" sozinhos, ou qualquer variação óbvia deles).',
 }
-const HINT: CampoSlide = { nome: 'hint', label: 'Legenda pequena (opcional)', tipo: 'texto', maxLength: 60, opcional: true }
+// Achado real: sem direção própria, a IA às vezes escrevia um complemento
+// curto demais pra fazer sentido sozinho (ex.: "Você ainda está na
+// primeira" — primeira o quê?), exigindo interpretação demais de quem lê em
+// menos de 1 segundo, que é o tempo real de atenção num slide de carrossel.
+const HINT: CampoSlide = {
+  nome: 'hint',
+  label: 'Legenda pequena (opcional)',
+  tipo: 'texto',
+  maxLength: 60,
+  opcional: true,
+  direcaoIA:
+    'Um complemento curto que precisa fazer sentido sozinho, sem depender de interpretar o headline junto: quem lê em menos de 1 segundo já entende do que se trata. Nunca corte uma frase pela metade só pra caber no limite de caracteres.',
+}
 
 export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
   logocover: [{ nome: 'tagline', label: 'Tagline sob a logo', tipo: 'texto', maxLength: 60 }],
@@ -187,8 +206,13 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
   ],
   cta: [
     KICKER,
-    { nome: 'headline', label: 'O convite', tipo: 'texto-longo', maxLength: 64 },
-    { nome: 'url', label: 'URL', tipo: 'url' },
+    { nome: 'headline', label: 'O convite', tipo: 'texto-longo', maxLength: 90 },
+    // Nunca vem da IA (ver MetodoConversao em conversao.ts) — resolvido no
+    // servidor a partir do Perfil (telefone, url do site) ou de um texto fixo
+    // ("Link na bio"), conforme o método de conversão escolhido. Opcional
+    // porque, sem o dado do Perfil (ex.: telefone não preenchido), a peça
+    // sai só com o convite, sem destino — não bloqueia a geração.
+    { nome: 'url', label: 'Destino (telefone / link)', tipo: 'url', opcional: true },
   ],
   tweet: [
     // Opcional, igual ao campo de foto do layout `photo` (`camposFaltando`
@@ -205,6 +229,29 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
         'Texto de um card de uma thread explicativa — precisa ser uma ideia completa e desenvolvida (uma ou duas frases de verdade, com contexto e profundidade). NUNCA uma palavra solta, um número isolado ou uma frase de efeito de 2-3 palavras: esse formato existe pra reter quem já segue o perfil com conteúdo que vale a pena ler, não frases soltas de impacto. Continue a narrativa do card anterior, sem repetir o gancho do primeiro.',
     },
   ],
+  grafico: [
+    {
+      nome: 'headline',
+      label: 'Título do gráfico',
+      tipo: 'texto-longo',
+      maxLength: 90,
+      direcaoIA:
+        'A pergunta ou afirmação que o gráfico responde, direta e específica (ex.: "Quantas pessoas uma empresa precisa pra gerar US$ 30 bilhões?"), nunca genérica. No máximo 12 palavras, frase completa (nunca corte uma ideia pela metade).',
+    },
+    {
+      nome: 'text',
+      label: 'Subtítulo (explica o que cada barra representa)',
+      tipo: 'texto-longo',
+      maxLength: 140,
+      opcional: true,
+      direcaoIA:
+        'Uma frase curta explicando o que exatamente cada barra representa: o leitor precisa entender o gráfico sem esforço. No máximo 18 palavras, frase completa.',
+    },
+    // Nunca preenchido pela IA (ver `EstiloVisual`) — dado numérico real,
+    // sempre digitado manualmente na tela de edição do rascunho.
+    { nome: 'barras', label: 'Barras do gráfico', tipo: 'grafico-itens' },
+    { nome: 'hint', label: 'Fonte / observação (opcional)', tipo: 'texto', maxLength: 160, opcional: true },
+  ],
 }
 
 export interface CampoFaltando {
@@ -218,6 +265,16 @@ function campoVazio(valor: unknown): boolean {
   return Array.isArray(valor) && valor.length === 0
 }
 
+// Uma barra "vazia" (rótulo/valor exibido em branco, ou valor numérico
+// inválido) vira texto "undefined"/altura quebrada na imagem — mesmo risco
+// que motivou essa função existir, só que por dentro de um array em vez de
+// um campo solto.
+function barraIncompleta(item: unknown): boolean {
+  if (typeof item !== 'object' || item === null) return true
+  const b = item as Record<string, unknown>
+  return !b.rotulo || !b.valorExibido || typeof b.valor !== 'number' || !Number.isFinite(b.valor)
+}
+
 // Roda antes de gerar as imagens — sem isso, um campo obrigatório vazio vira
 // o texto literal "undefined" na imagem renderizada (o motor de render só
 // interpola o valor, não valida). Bloqueante: melhor um erro em tela agora
@@ -227,6 +284,14 @@ export function camposFaltando(slides: Slide[]): CampoFaltando[] {
   slides.forEach((slide, slideIndex) => {
     for (const campo of CAMPOS_POR_LAYOUT[slide.layout] ?? []) {
       if (campo.opcional || campo.tipo === 'foto') continue
+      if (campo.tipo === 'grafico-itens') {
+        const barras = slide[campo.nome]
+        // Pelo menos 2 barras — um gráfico de 1 barra só não compara nada.
+        if (!Array.isArray(barras) || barras.length < 2 || barras.some(barraIncompleta)) {
+          faltando.push({ slideIndex, campo: campo.nome, label: campo.label })
+        }
+        continue
+      }
       if (campoVazio(slide[campo.nome])) faltando.push({ slideIndex, campo: campo.nome, label: campo.label })
     }
   })
