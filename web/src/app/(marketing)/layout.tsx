@@ -1,14 +1,18 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { NavDropdowns } from './site-nav'
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="group relative py-1 text-muted-foreground transition-colors hover:text-foreground">
+    <Link
+      href={href}
+      className="group relative py-1 text-muted-foreground transition-colors max-lg:text-[15px] hover:text-foreground"
+    >
       {children}
-      <span className="absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-300 ease-out group-hover:scale-x-100" />
+      {/* Sublinhado sempre na cor de marca (roxo), não na cor do texto — regra
+          da IDV Eknotech (docs/design-system-eknotech.md, seção 6.1). */}
+      <span className="absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 bg-violet-600 transition-transform duration-300 ease-out group-hover:scale-x-100" />
     </Link>
   )
 }
@@ -16,19 +20,29 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="fixed inset-x-0 top-4 z-50 px-4">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between rounded-xl border border-border bg-background/30 px-4 shadow-lg shadow-black/5 backdrop-blur-xl transition-colors hover:border-violet-600/20 hover:bg-background/50 sm:px-6">
+      <header className="fixed inset-x-0 top-4 z-50 max-md:top-2.5 max-[480px]:top-2">
+        {/* Pílula flutuante: transparente em repouso, só ganha fundo/borda de
+            marca no hover (IDV Eknotech, seção 6.1). Medidas replicadas do
+            NavBar.css real da eknotech: largura 92%/1100px, raio 12px,
+            padding 12px 24px (a altura nasce do conteúdo, não é fixa). */}
+        <div className="mx-auto flex w-[92%] max-w-[1100px] items-center justify-between rounded-[12px] border border-border bg-transparent px-6 py-3 shadow-lg shadow-black/5 backdrop-blur-xl transition-colors max-md:w-[calc(100%-32px)] max-md:px-3.5 max-md:py-2.5 max-[480px]:w-[calc(100%-24px)] max-[480px]:px-3 max-[480px]:py-2 hover:border-violet-600/20 hover:bg-background/30">
           <Link href="/" className="flex items-center">
-            <Image src="/gridgen-wordmark-roxo.png" alt="Gridgen" width={105} height={24} className="h-6 w-auto dark:hidden" />
+            <Image
+              src="/gridgen-wordmark-roxo.png"
+              alt="Gridgen"
+              width={227}
+              height={52}
+              className="h-9 w-auto max-md:h-8 max-[480px]:h-7 dark:hidden"
+            />
             <Image
               src="/gridgen-wordmark-branco.png"
               alt="Gridgen"
-              width={105}
-              height={24}
-              className="hidden h-6 w-auto dark:block"
+              width={227}
+              height={52}
+              className="hidden h-9 w-auto max-md:h-8 max-[480px]:h-7 dark:block"
             />
           </Link>
-          <div className="hidden items-center gap-8 sm:flex">
+          <div className="hidden items-center gap-7 max-lg:gap-5 sm:flex">
             <NavLink href="/como-funciona">Como funciona</NavLink>
             <NavDropdowns />
           </div>
@@ -36,7 +50,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
               Entrar
             </Link>
-            <Link href="/contato" className={cn(buttonVariants({ size: 'sm' }), 'rounded-full')}>
+            <Link href="/contato" className={buttonVariants({ variant: 'cta' })}>
               Fale com a gente
             </Link>
           </div>
