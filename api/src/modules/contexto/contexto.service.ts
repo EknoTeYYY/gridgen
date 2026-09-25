@@ -102,7 +102,11 @@ export async function conversarSobreContexto(
 
   const resposta = await claude.messages.create({
     model: env.ANTHROPIC_MODEL,
-    max_tokens: 2000,
+    // O campo `markdown` da tool é o documento de contexto INTEIRO, que cresce a
+    // cada troca — com 2000 tokens o JSON da tool truncava no meio do markdown
+    // assim que as 5 seções enchiam (campos ausentes -> 502 intermitente). 8000
+    // dá folga larga; a geração para sozinha no end_turn bem antes disso.
+    max_tokens: 8000,
     system: `${SYSTEM_PROMPT}\n\n## Contexto atual (markdown)\n${markdownAtual || '(vazio — esta é a primeira conversa com este Perfil)'}\n\n## Estado da entrevista\n${linhaPendentes}\n${linhaCanal}`,
     messages: mensagens,
     tools: [FERRAMENTA_ATUALIZAR_CONTEXTO],

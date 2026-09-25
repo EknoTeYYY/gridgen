@@ -377,7 +377,10 @@ async function chamarClaudeEExtrair(
   const claude = getClaude()
   const resposta = await claude.messages.create({
     model: env.ANTHROPIC_MODEL,
-    max_tokens: 2000,
+    // A tool retorna caption + hashtags + slides[] (um carrossel inteiro) — com
+    // 2000 tokens o JSON truncava em posts com muitos cards (campos ausentes ->
+    // 502). 8000 cobre o pior caso; para no end_turn bem antes em posts curtos.
+    max_tokens: 8000,
     system,
     messages: [{ role: 'user', content: prompt }],
     tools: [ferramenta],
