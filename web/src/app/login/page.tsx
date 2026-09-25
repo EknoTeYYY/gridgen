@@ -2,10 +2,17 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Suspense } from 'react'
+import { redirect } from 'next/navigation'
+import { getSession } from '@/lib/session'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoginForm } from './login-form'
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Já logado (token VÁLIDO) → dashboard. Validação via getSession/me, nunca por
+  // presença de cookie — um token inválido presente deve cair no formulário,
+  // não voltar pro dashboard (senão volta o loop que o proxy causava).
+  if (await getSession()) redirect('/dashboard')
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
