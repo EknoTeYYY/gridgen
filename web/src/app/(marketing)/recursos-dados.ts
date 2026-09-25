@@ -1,5 +1,4 @@
 import {
-  BellRing,
   CalendarDays,
   FolderOpen,
   ImageIcon,
@@ -30,7 +29,7 @@ export const RECURSOS: RecursoDetalhado[] = [
       'Cada Perfil guarda seu próprio BrandKit, contexto de marca, posts e calendário. Uma agência com 12 clientes ativos é 12 Perfis dentro da mesma conta, sem misturar conteúdo, identidade visual ou histórico de um cliente com o de outro.',
     pontos: [
       'BrandKit próprio por Perfil: cores, fonte e logo',
-      'Posts, calendário e aprovações isolados por Perfil',
+      'Posts e calendário isolados por Perfil',
       'Sem limite artificial de quantos Perfis uma conta pode ter',
     ],
   },
@@ -122,20 +121,7 @@ export const RECURSOS: RecursoDetalhado[] = [
     pontos: [
       'Datas comerciais curadas mais datas próprias por Perfil',
       'Rascunho gerado com antecedência, sem precisar lembrar',
-      'Falha na geração vira alerta em Aprovações, não passa batido',
-    ],
-  },
-  {
-    slug: 'aprovacoes',
-    icon: BellRing,
-    titulo: 'Aprovações centralizadas',
-    resumo: 'Tudo que está pronto pra revisar, gerado na hora ou pelo calendário, aparece num único lugar.',
-    detalhe:
-      'Post pronto pra revisar, não importa de qual Perfil veio, aparece numa única tela. Um contador na barra lateral avisa quando tem algo esperando, pra nada passar batido no meio da correria do dia a dia.',
-    pontos: [
-      'Uma tela só, cruzando todos os Perfis da conta',
-      'Contador de pendências sempre visível',
-      'Post com falha de geração aparece marcado, não some sozinho',
+      'Falha na geração aparece marcada no calendário e na lista de posts',
     ],
   },
 ]

@@ -1,15 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { proximaOcorrencia } from '@gridgen/shared'
 import { criarDataPersonalizadaSchema } from './calendario.schemas.js'
-import {
-  BACKOFF_INICIAL_MS,
-  dentroDaAntecedencia,
-  idDoJobGerar,
-  JOB_GERAR_CAMPANHA,
-  proximasOcorrenciasCuradas,
-  TENTATIVAS_GERACAO,
-  type CampanhaCandidata,
-} from './calendario.service.js'
+import { dentroDaAntecedencia, enfileirarGeracaoImediata, proximasOcorrenciasCuradas, type CampanhaCandidata } from './calendario.service.js'
 
 export default async function calendarioRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate)
@@ -56,11 +48,7 @@ export default async function calendarioRoutes(app: FastifyInstance) {
         tipoSugerido: data.tipoSugerido,
         data: proxima,
       }
-      await app.calendarioQueue.add(JOB_GERAR_CAMPANHA, candidato, {
-        jobId: idDoJobGerar(candidato),
-        attempts: TENTATIVAS_GERACAO,
-        backoff: { type: 'exponential', delay: BACKOFF_INICIAL_MS },
-      })
+      await enfileirarGeracaoImediata(app, candidato)
     }
 
     return reply.code(201).send(data)
@@ -75,25 +63,5 @@ export default async function calendarioRoutes(app: FastifyInstance) {
 
     await app.prisma.dataPersonalizada.delete({ where: { id } })
     return reply.code(204).send()
-  })
-
-  // "Aguardando aprovação": qualquer post renderizado (pronto, de qualquer
-  // origem); rascunhos que o calendário gerou sozinho (precisam de uma
-  // primeira revisão antes de sequer renderizar); e campanhas que a fila não
-  // conseguiu nem começar a gerar (ex.: chave da Anthropic ausente) — sem
-  // isso apareceriam pra revisão, o usuário não teria como saber que precisa
-  // configurar algo.
-  app.get('/posts/pendentes', async (request, reply) => {
-    const contaId = request.usuarioAtual!.contaId
-
-    const posts = await app.prisma.post.findMany({
-      where: {
-        perfil: { contaId },
-        OR: [{ status: 'pronto' }, { origem: 'agenda', status: { in: ['rascunho', 'erro'] } }],
-      },
-      include: { perfil: { select: { id: true, nome: true } } },
-      orderBy: { createdAt: 'desc' },
-    })
-    return reply.send(posts)
   })
 }

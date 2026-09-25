@@ -12,6 +12,7 @@ import {
   brandKitDoPerfil,
   extrairHandleInstagram,
   montarPayloadRenderCanal,
+  montarPayloadRenderPrincipal,
   slidesDoJson,
   slidesParaJson,
   validarSlidesContraReceita,
@@ -256,19 +257,7 @@ export default async function postsRoutes(app: FastifyInstance) {
     const renderJob = await app.prisma.renderJob.create({ data: { postId: post.id, status: 'processando' } })
     await app.prisma.post.update({ where: { id: post.id }, data: { status: 'gerando' } })
 
-    const payload: RenderJobPayload = {
-      postId: post.id,
-      brand: brandKitDoPerfil(post.perfil),
-      post: {
-        slug: post.slug,
-        tipo: post.tipo as never,
-        formato: post.formato as never,
-        caption: post.caption,
-        hashtags: post.hashtags,
-        slides: slidesDoJson(post.slides),
-      },
-    }
-
+    const payload = montarPayloadRenderPrincipal(post, brandKitDoPerfil(post.perfil))
     await app.renderQueue.add('render', payload, { jobId: renderJob.id })
     return reply.code(202).send({ renderJobId: renderJob.id })
   })

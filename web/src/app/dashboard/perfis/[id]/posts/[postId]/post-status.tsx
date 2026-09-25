@@ -81,10 +81,6 @@ export function PostStatus({
           }
         }
         if (atualizado.status === 'erro') toast.error('Falha ao gerar o post — veja o detalhe abaixo.')
-        // A troca de "gerando" pra "pronto"/"erro" muda a contagem de
-        // Aprovações — isso é estado do servidor (layout do dashboard),
-        // setPost sozinho não avisa o sidebar.
-        if (atualizado.status !== 'gerando') router.refresh()
         setPost(atualizado)
       }
     }, 2000)

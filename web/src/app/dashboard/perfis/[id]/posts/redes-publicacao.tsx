@@ -109,11 +109,11 @@ export function RedesPublicacao({
       if (selecionada && redeAtiva === rede) onRedeAtivaChange(null)
       // Sem router.refresh() aqui de propósito: marcar/desmarcar rede não
       // muda nada que dependa de refetch do servidor nesta tela (status do
-      // post e contador de Aprovações não dependem de `saidas`) — e chamar
-      // isso tinha uma causa raiz real: o refresh assíncrono podia terminar
-      // bem depois do clique, resetando estado local (`redeAtiva`) no meio
-      // de outra interação (achado real do usuário: trocar de rede logo
-      // depois de marcar/desmarcar "esquecia" a aba escolhida).
+      // post não depende de `saidas`) — e chamar isso tinha uma causa raiz
+      // real: o refresh assíncrono podia terminar bem depois do clique,
+      // resetando estado local (`redeAtiva`) no meio de outra interação
+      // (achado real do usuário: trocar de rede logo depois de
+      // marcar/desmarcar "esquecia" a aba escolhida).
       const atualizado = await fetch(`/api/posts/${post.id}`, { cache: 'no-store' })
       if (atualizado.ok) onPostChange(await atualizado.json())
     } finally {

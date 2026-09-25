@@ -1,20 +1,24 @@
 import Image from 'next/image'
 import { requireSession, serverFetch } from '@/lib/session'
-import type { Perfil, Post } from '@/lib/types'
+import type { Perfil } from '@/lib/types'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
 import { SidebarPerfisList } from '@/components/dashboard/sidebar-perfis-list'
 import { UserMenu } from '@/components/dashboard/user-menu'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession()
-  const [perfis, pendentes] = await Promise.all([
-    serverFetch<Perfil[]>('/perfis').catch(() => []),
-    serverFetch<Post[]>('/posts/pendentes').catch(() => []),
-  ])
+  const perfis = await serverFetch<Perfil[]>('/perfis').catch(() => [])
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-3 text-sidebar-foreground">
+      {/* `sticky` + `h-screen` prende a sidebar na altura da viewport — sem
+          isso ela esticava junto com o `<main>` (efeito padrão de flexbox
+          num container `min-h-screen`), e numa página longa (grade de
+          Posts) o menu de usuário no rodapé (`mt-auto`) acabava empurrado
+          bem abaixo do que cabe na tela, embora nunca tivesse sumido de
+          verdade. `overflow-y-auto` deixa o conteúdo da própria sidebar
+          rolar por conta, sem depender da altura do `<main>`. */}
+      <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar p-3 text-sidebar-foreground">
         <div className="mb-2 flex flex-col items-start gap-1 px-2 py-2">
           <Image src="/gridgen-wordmark-roxo.png" alt="Gridgen" width={87} height={20} className="h-5 w-auto dark:hidden" />
           <Image
@@ -27,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <span className="truncate text-xs text-muted-foreground">{session.conta.nome}</span>
         </div>
 
-        <SidebarNav pendentesCount={pendentes.length} />
+        <SidebarNav />
         <SidebarPerfisList perfis={perfis} />
 
         <div className="mt-auto pt-2">

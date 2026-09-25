@@ -19,7 +19,7 @@ export const FEITO_PARA: PublicoDetalhado[] = [
       'Gerencie o conteúdo de quantos clientes precisar, cada um com seu próprio BrandKit, calendário e histórico de aprovação, sem misturar a marca de um cliente com a de outro. A mesma equipe produz pra todos, sem abrir uma conta nova a cada contrato.',
     pontos: [
       'Um Perfil por cliente, sem limite de quantos numa conta',
-      'Aprovações centralizadas cruzando todos os clientes numa tela só',
+      'Calendário mensal por IA: aprove de uma vez, o mês inteiro sai pronto sozinho',
       'Cada cliente com sua própria identidade visual aplicada automaticamente',
     ],
   },

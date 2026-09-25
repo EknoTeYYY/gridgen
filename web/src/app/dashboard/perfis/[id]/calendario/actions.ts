@@ -25,14 +25,6 @@ export async function gerarPropostaMensal(perfilId: string, ano: number, mes: nu
   }
 }
 
-export async function buscarPropostaMensal(perfilId: string, ano: number, mes: number): Promise<PropostaCalendario | null> {
-  try {
-    return await serverFetch<PropostaCalendario | null>(`/perfis/${perfilId}/calendario-mensal?ano=${ano}&mes=${mes}`)
-  } catch {
-    return null
-  }
-}
-
 export async function aprovarPropostaMensal(perfilId: string, propostaId: string): Promise<ResultadoPropostaMensal> {
   try {
     const proposta = await serverFetch<PropostaCalendario>(`/calendario-mensal/${propostaId}/aprovar`, { method: 'POST' })

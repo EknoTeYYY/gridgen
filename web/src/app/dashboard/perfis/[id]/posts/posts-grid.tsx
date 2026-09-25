@@ -58,10 +58,10 @@ function StatusBadge({ status }: { status: Post['status'] }) {
 // Só post pronto abre num modal (o painel de 2 colunas, com o
 // carrossel de imagens) — rascunho/gerando/erro continuam na página cheia de
 // edição, que é um formulário por slide e nunca foi o problema. `?post=<id>`
-// é como outras telas (a própria página cheia, quando a geração termina; a
-// lista de Aprovações) pedem pra essa grade abrir o post certo — sempre
-// verificando o status de verdade antes de decidir modal ou página cheia,
-// nunca confiando cegamente em quem apontou o link.
+// é como outras telas (a própria página cheia, quando a geração termina; o
+// calendário) pedem pra essa grade abrir o post certo — sempre verificando o
+// status de verdade antes de decidir modal ou página cheia, nunca confiando
+// cegamente em quem apontou o link.
 export function PostsGrid({ perfilId, posts }: { perfilId: string; posts: Post[] }) {
   const router = useRouter()
   const searchParams = useSearchParams()

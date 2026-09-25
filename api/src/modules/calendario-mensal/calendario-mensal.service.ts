@@ -3,6 +3,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { CALENDARIO_SAZONAL, diaSeOcorreNoMes, type Formato, type TipoConteudo } from '@gridgen/shared'
 import { getClaude } from '../../lib/claude.js'
 import { env } from '../../env.js'
+import { candidatoDePauta, enfileirarGeracaoImediata, type CampanhaCandidata } from '../calendario/calendario.service.js'
 import { removerTravessoes } from '../geracao/geracao.service.js'
 
 const TIPOS_VALIDOS = ['educativo', 'conexao', 'prova_social', 'produtos_servicos', 'interativo'] as const
@@ -187,9 +188,23 @@ export async function gerarPropostaMensal(app: FastifyInstance, perfilId: string
   return { propostaId: proposta.id }
 }
 
+// Aprovar o mês inteiro já É a decisão humana — cada pauta é gerada (texto +
+// imagem automática + render) na hora, sem esperar a varredura diária de
+// `ANTECEDENCIA_DIAS` dias antes de cada data. Rascunho parado esperando
+// alguém lembrar de abrir não converte mais com o modelo atual (aviso por
+// e-mail perto da hora de publicar, não integração automática) — a varredura
+// diária continua existindo como rede de segurança (pauta editada/adicionada
+// depois da aprovação, ou reprocessamento de falha), não como o caminho
+// principal pra pauta de um mês já aprovado.
 export async function aprovarPropostaMensal(app: FastifyInstance, propostaId: string): Promise<void> {
-  await app.prisma.propostaCalendario.update({
+  const proposta = await app.prisma.propostaCalendario.update({
     where: { id: propostaId },
     data: { status: 'aprovado', aprovadoEm: new Date() },
+    include: { pautas: { where: { postId: null } } },
   })
+
+  for (const pauta of proposta.pautas) {
+    const candidato: CampanhaCandidata = { perfilId: proposta.perfilId, ...candidatoDePauta(pauta) }
+    await enfileirarGeracaoImediata(app, candidato)
+  }
 }

@@ -189,6 +189,27 @@ export function brandKitDoPerfil(perfil: {
   }
 }
 
+// Compartilhado entre a rota manual (`POST /posts/:id/gerar`) e a geração
+// automática do calendário (`calendario.service.ts`, ao aprovar o mês) — o
+// mesmo payload de render do post principal, venha o gatilho de onde vier.
+export function montarPayloadRenderPrincipal(
+  post: { id: string; slug: string; tipo: string; formato: string; caption: string; hashtags: string; slides: unknown },
+  brand: BrandKit,
+): RenderJobPayload {
+  return {
+    postId: post.id,
+    brand,
+    post: {
+      slug: post.slug,
+      tipo: post.tipo as never,
+      formato: post.formato as never,
+      caption: post.caption,
+      hashtags: post.hashtags,
+      slides: slidesDoJson(post.slides),
+    },
+  }
+}
+
 // Compartilhado entre a rota manual (`POST /posts/:id/canais/:canal/gerar`) e
 // o worker que prepara a rede automaticamente na criação do post — os dois
 // precisam montar o mesmo payload de render, só o gatilho é diferente.
