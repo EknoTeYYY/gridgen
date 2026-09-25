@@ -7,7 +7,9 @@ const schema = z.object({
   // Sem fallback inseguro: se JWT_SECRET não estiver setado, o boot falha —
   // em vez de assinar tokens com um segredo hardcoded previsível.
   JWT_SECRET: z.string().min(16, 'JWT_SECRET é obrigatório (mín. 16 caracteres — gere com openssl rand -hex 32)'),
-  JWT_ACCESS_TTL: z.string().default('15m'),
+  // 8h acompanha o cookie access_token do web (ACCESS_TOKEN_MAX_AGE) e os
+  // .env.example — o default 15m divergia e derrubava a sessão no meio do uso.
+  JWT_ACCESS_TTL: z.string().default('8h'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(30),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   OUTPUT_DIR: z.string().default('/data/output'),

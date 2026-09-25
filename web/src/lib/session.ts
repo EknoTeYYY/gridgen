@@ -43,7 +43,16 @@ export async function serverFetchRaw(path: string, init: RequestInit = {}): Prom
   return fetch(`${API_URL}${path}`, { ...init, headers, cache: 'no-store' })
 }
 
-export async function serverFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function serverFetch<T>(
+  path: string,
+  init: RequestInit = {},
+  // Sessão expirada/inválida (401) durante um render no servidor vira, por
+  // padrão, um redirect pro /login. Sem isto o 401 sobe como erro de
+  // renderização não tratado — que o usuário vê como "a aplicação caiu".
+  // A checagem de sessão (`/me` em getSession) passa `redirectOn401: false`
+  // pra continuar devolvendo "deslogado" em vez de forçar o login.
+  { redirectOn401 = true }: { redirectOn401?: boolean } = {},
+): Promise<T> {
   const cookieStore = await cookies()
   const token = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value
 
@@ -57,6 +66,10 @@ export async function serverFetch<T>(path: string, init: RequestInit = {}): Prom
   if (token) headers.Authorization = `Bearer ${token}`
 
   const res = await fetch(`${API_URL}${path}`, { ...init, headers, cache: 'no-store' })
+
+  if (res.status === 401 && redirectOn401) {
+    redirect('/login')
+  }
 
   if (!res.ok) {
     let detalhes: unknown = null
@@ -75,7 +88,9 @@ export async function serverFetch<T>(path: string, init: RequestInit = {}): Prom
 
 export async function getSession(): Promise<SessionUser | null> {
   try {
-    return await serverFetch<SessionUser>('/me')
+    // redirectOn401:false — aqui um 401 significa "não logado", e quem chama
+    // (requireSession, páginas públicas) decide o que fazer; não força /login.
+    return await serverFetch<SessionUser>('/me', {}, { redirectOn401: false })
   } catch {
     return null
   }
