@@ -5,10 +5,11 @@ import {
   diferencaEmDias,
   montarSlidesPadrao,
   proximaOcorrencia,
+  type Formato,
   type TipoConteudo,
 } from '@gridgen/shared'
 import { gerarRascunhoComIA } from '../geracao/geracao.service.js'
-import { proximoSlugDePost, slidesParaJson } from '../posts/posts.service.js'
+import { proximoSlugDePost, resolverMetodoConversaoPadrao, slidesParaJson } from '../posts/posts.service.js'
 
 // Nome do job de geração individual e sua política de retry — tentativas
 // rápidas cobrem instabilidade passageira (ex.: rate limit da Anthropic); a
@@ -32,6 +33,15 @@ export interface CampanhaCandidata {
   nome: string
   tipoSugerido: TipoConteudo
   data: Date
+  // Preenchidos só quando a origem é uma PautaCalendario aprovada (proposta
+  // de calendário mensal, §6) — dão o briefing de verdade (assunto/abordagem/
+  // objetivo/direção visual da pauta) em vez do texto genérico de campanha
+  // sazonal, e o formato que a pauta pediu (nem sempre "feed"). `pautaId`
+  // deixa `gerarCampanha`/`marcarCampanhaComoFalha` linkarem de volta pro
+  // Post real gerado.
+  briefing?: string
+  formato?: Formato
+  pautaId?: string
 }
 
 export function proximasOcorrenciasCuradas(hoje: Date): Array<{ slug: string; nome: string; data: Date }> {
@@ -59,7 +69,29 @@ async function candidatosDoPerfil(
     data: proximaOcorrencia(() => ({ mes: p.mes, dia: p.dia }), hoje),
   }))
 
-  return [...curadas, ...doPerfil]
+  // Pautas de uma proposta de calendário mensal (§6) já aprovada, ainda sem
+  // post gerado — a data aqui é a `dataHorario` real da pauta (não "próxima
+  // ocorrência anual" como as duas fontes acima, que são recorrentes).
+  const pautas = await app.prisma.pautaCalendario.findMany({
+    where: { postId: null, proposta: { perfilId, status: 'aprovado' } },
+  })
+  const dasPautas = pautas.map((p) => ({
+    slug: `pauta-${p.id}`,
+    nome: p.assunto,
+    tipoSugerido: p.tipo as TipoConteudo,
+    data: p.dataHorario,
+    formato: p.formato as Formato,
+    pautaId: p.id,
+    briefing: [
+      `Assunto: ${p.assunto}. Abordagem: ${p.abordagem}.`,
+      `Público-alvo desta peça: ${p.publico}.`,
+      `Objetivo: ${p.objetivo}. Motivo da escolha: ${p.motivoEscolha}.`,
+      `Direção visual pretendida: ${p.direcaoVisual}.`,
+      `Ação desejada de quem vê: ${p.acaoDesejada}.`,
+    ].join(' '),
+  }))
+
+  return [...curadas, ...doPerfil, ...dasPautas]
 }
 
 async function jaGerado(app: FastifyInstance, c: CampanhaCandidata): Promise<boolean> {
@@ -108,28 +140,36 @@ export function dentroDaAntecedencia(data: Date, hoje: Date = new Date()): boole
 export async function gerarCampanha(app: FastifyInstance, c: CampanhaCandidata): Promise<void> {
   if (await jaGerado(app, c)) return // idempotente: corrida ou retry duplicado
 
+  const perfil = await app.prisma.perfil.findUniqueOrThrow({ where: { id: c.perfilId } })
   const contexto = await app.prisma.contextoMarkdown.findUnique({ where: { perfilId: c.perfilId } })
+  const metodoConversao = resolverMetodoConversaoPadrao(c.tipoSugerido, perfil)
   const rascunho = await gerarRascunhoComIA(
     c.tipoSugerido,
     contexto?.conteudoMarkdown ?? '',
-    `Post pra campanha sazonal "${c.nome}".`,
+    c.briefing ?? `Post pra campanha sazonal "${c.nome}".`,
+    undefined,
+    'padrao',
+    'ink',
+    metodoConversao,
   )
   const slug = await proximoSlugDePost(app.prisma, c.perfilId, c.tipoSugerido, c.nome)
-  await app.prisma.post.create({
+  const post = await app.prisma.post.create({
     data: {
       perfilId: c.perfilId,
       slug,
       tipo: c.tipoSugerido,
-      formato: 'feed',
+      formato: c.formato ?? 'feed',
       caption: rascunho.caption,
       hashtags: rascunho.hashtags,
       slides: slidesParaJson(rascunho.slides),
+      metodoConversao,
       origem: 'agenda',
       campanhaSlug: c.slug,
       campanhaNome: c.nome,
       campanhaData: c.data,
     },
   })
+  if (c.pautaId) await app.prisma.pautaCalendario.update({ where: { id: c.pautaId }, data: { postId: post.id } })
 }
 
 // Chamado quando a fila esgota todas as tentativas de `gerarCampanha` (ex.:
@@ -141,12 +181,12 @@ export async function marcarCampanhaComoFalha(app: FastifyInstance, c: CampanhaC
   if (await jaGerado(app, c)) return
 
   const slug = await proximoSlugDePost(app.prisma, c.perfilId, c.tipoSugerido, c.nome)
-  await app.prisma.post.create({
+  const post = await app.prisma.post.create({
     data: {
       perfilId: c.perfilId,
       slug,
       tipo: c.tipoSugerido,
-      formato: 'feed',
+      formato: c.formato ?? 'feed',
       slides: slidesParaJson(montarSlidesPadrao(c.tipoSugerido)),
       status: 'erro',
       origem: 'agenda',
@@ -155,4 +195,5 @@ export async function marcarCampanhaComoFalha(app: FastifyInstance, c: CampanhaC
       campanhaData: c.data,
     },
   })
+  if (c.pautaId) await app.prisma.pautaCalendario.update({ where: { id: c.pautaId }, data: { postId: post.id } })
 }

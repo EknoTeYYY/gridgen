@@ -22,12 +22,17 @@ const STATUS_LABEL: Record<Post['status'], string> = {
 }
 
 const TIPO_LABEL: Record<Post['tipo'], string> = {
-  ancora: 'Âncora',
-  dor: 'Dor',
-  prova: 'Prova',
-  didatico: 'Didático',
-  dado: 'Dado',
-  oferta: 'Oferta',
+  educativo: 'Educativo',
+  conexao: 'Conexão',
+  prova_social: 'Prova Social',
+  produtos_servicos: 'Produtos e Serviços',
+  interativo: 'Interativo',
+}
+
+const FORMATO_LABEL: Record<Post['formato'], string> = {
+  feed: 'Feed',
+  square: 'Quadrado',
+  story: 'Stories',
 }
 
 function StatusBadge({ status }: { status: Post['status'] }) {
@@ -122,21 +127,23 @@ export function PostsGrid({ perfilId, posts }: { perfilId: string; posts: Post[]
                 )}
               </div>
               <CardContent className="flex flex-col gap-2 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{post.slug}</p>
-                    {post.campanhaNome ? (
-                      <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                        <CalendarDays className="size-3 shrink-0" />
-                        {post.campanhaNome}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground capitalize">{post.formato}</p>
-                    )}
-                  </div>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{post.slug}</p>
+                  {post.campanhaNome ? (
+                    <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      <CalendarDays className="size-3 shrink-0" />
+                      {post.campanhaNome}
+                    </p>
+                  ) : (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {TIPO_LABEL[post.tipo]} · {FORMATO_LABEL[post.formato]}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <RedesSociaisIcons saidas={post.saidas} incluirInstagram />
                   <StatusBadge status={post.status} />
                 </div>
-                <RedesSociaisIcons saidas={post.saidas} />
               </CardContent>
             </>
           )
@@ -191,7 +198,7 @@ export function PostsGrid({ perfilId, posts }: { perfilId: string; posts: Post[]
             <PostStatus
               postInicial={postAberto}
               titulo={postAberto.slug}
-              subtitulo={`${TIPO_LABEL[postAberto.tipo]} · ${postAberto.formato}`}
+              subtitulo={`${TIPO_LABEL[postAberto.tipo]} · ${FORMATO_LABEL[postAberto.formato]}`}
               onFechar={fechar}
               onExcluido={fechar}
             />

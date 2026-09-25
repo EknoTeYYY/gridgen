@@ -14,7 +14,7 @@
 //    template literal de verdade;
 //  - fotos chegam como `slide.photoDataUri` (já resolvido pela API) em vez
 //    de caminho de arquivo lido do disco.
-import type { BrandKit, Formato, Slide } from '@gridgen/shared'
+import type { BrandKit, Formato, Layout, Slide, TipoConteudo } from '@gridgen/shared'
 import { pacoteFonte } from './fonts.js'
 
 export const CANVAS_WIDTH = 1080
@@ -51,16 +51,87 @@ export function dimensoesPara(formato: Formato): Dimensoes {
   return { largura: CANVAS_WIDTH, altura, padTop, padBottom }
 }
 
-function css(brand: BrandKit, H: number, padTop: number, padBottom: number): string {
+function css(brand: BrandKit, H: number, padTop: number, padBottom: number, tipo?: TipoConteudo): string {
   const fonte = pacoteFonte(brand.fonte)
   const grad = `linear-gradient(120deg,${brand.corPrimaria},${brand.corSecundaria})`
   const brandBg = `color-mix(in srgb, ${brand.corPrimaria} 55%, black)`
+
+  // "Produtos e Serviços" existe pra mostrar o produto/serviço com clareza
+  // (nota da própria receita: "produto é sempre o protagonista visual") — o
+  // time relatou que o filtro/scrim padrão, pensado pra garantir
+  // legibilidade de texto sobre QUALQUER foto, estava ofuscando demais a
+  // foto nesse tipo especificamente (era o antigo tipo "prova", migrado pra
+  // cá). Reduz (não remove) tint/scrim/filtro de imagem só aqui, mantendo um
+  // pouco mais de escurecida perto do texto pra não perder legibilidade.
+  const fotoSuave = tipo === 'produtos_servicos'
+  const bleedImgFiltro = fotoSuave
+    ? 'grayscale(.05) brightness(.94) contrast(1.02)'
+    : 'grayscale(.14) brightness(.8) contrast(1.06)'
+  const bleedTint = fotoSuave
+    ? `color-mix(in srgb, ${brand.corPrimaria} 12%, transparent),color-mix(in srgb, ${brand.corSecundaria} 8%, transparent)`
+    : `color-mix(in srgb, ${brand.corPrimaria} 30%, transparent),color-mix(in srgb, ${brand.corSecundaria} 20%, transparent)`
+  const bleedScrim = fotoSuave
+    ? 'rgba(6,5,20,.78) 6%,rgba(6,5,20,.12) 46%,rgba(6,5,20,.38) 100%'
+    : 'rgba(6,5,20,.94) 6%,rgba(6,5,20,.34) 46%,rgba(6,5,20,.66) 100%'
+  const bleedScrimV1 = fotoSuave
+    ? 'rgba(6,5,20,.15) 0%, rgba(6,5,20,.5) 100%'
+    : 'rgba(6,5,20,.3) 0%, rgba(6,5,20,.74) 100%'
+  const bleedScrimV2 = fotoSuave
+    ? 'rgba(6,5,20,.65) 0%,rgba(6,5,20,.24) 34%,rgba(6,5,20,0) 58%'
+    : 'rgba(6,5,20,.92) 0%,rgba(6,5,20,.48) 34%,rgba(6,5,20,0) 58%'
+  const bleedScrimV3 = fotoSuave
+    ? 'rgba(6,5,20,.12) 0%, rgba(6,5,20,0) 36%'
+    : 'rgba(6,5,20,.24) 0%, rgba(6,5,20,0) 36%'
+  const frameImgFiltro = fotoSuave
+    ? 'grayscale(.10) brightness(1) contrast(1)'
+    : 'grayscale(.26) brightness(.94) contrast(1.03)'
+  const frameTint = fotoSuave ? 'rgba(46,40,140,.10),rgba(29,78,216,.06)' : 'rgba(46,40,140,.26),rgba(29,78,216,.15)'
+  const frameScrim = fotoSuave ? 'rgba(8,6,28,.55),rgba(8,6,28,0) 55%' : 'rgba(8,6,28,.85),rgba(8,6,28,0) 55%'
+
+  // Escala tipográfica do motor — todo font-size do sistema vem daqui, nunca
+  // mais um número solto por composição. Base 24px, progressão ~1.2 ("terça
+  // menor", proporção comum em escalas tipográficas), arredondada por papel.
+  // Achado real da auditoria: antes desse token existir, o arquivo tinha ~30
+  // valores de font-size distintos, vários quase iguais por deriva (42/45/46,
+  // 63/64, 148/150) — sem nenhuma relação matemática entre eles. Consolidado
+  // aqui: cada papel usa sempre o MESMO tamanho em qualquer layout que o use.
+  // As 4 variações extras de manchete (headlineSm/Lg/Xl/Hero) são flavors
+  // deliberados das 5 composições de capa (`photo-full-v1..v4`) — uma
+  // sub-progressão nomeada, não números soltos. Ficam FORA desta escala, de
+  // propósito, dois sistemas com identidade visual própria já documentada: o
+  // card estilo "tweet" (`.tw-*`, imita a tipografia real de uma rede social,
+  // não a da marca) e as dimensões de componente (altura de moldura de foto,
+  // diâmetro de badge/círculo, border-radius) — isso é grid/proporção de
+  // layout, uma frente própria, não escala de texto.
+  const T = {
+    micro: 20, // notas auxiliares bem pequenas (rodapé do gráfico, nota da enquete)
+    label: 24, // rótulos mono uppercase (rótulo do gráfico, contador de slide)
+    caption: 28, // legendas/hints mono (hint, url, lockup, pill do CTA)
+    small: 34, // texto de apoio (subtítulo/valor do gráfico)
+    body: 45, // parágrafo padrão (texto de todo layout com corpo)
+    subhead: 58, // subtítulo/título menor (list-title, título do gráfico, card de foto)
+    title: 64, // título de destaque (item-title, split/item)
+    headline: 78, // manchete padrão (h-display/h-sans, título sobre foto)
+    headlineSm: 84, // manchete flavor — capa v2 (ancorada no topo)
+    headlineLg: 90, // manchete flavor — capa v0/base sobre foto
+    headlineXl: 100, // manchete flavor — capa v1 (centralizada)
+    headlineHero: 112, // manchete flavor — capa v4 (estilo capa de jornal, caixa alta)
+    display: 148, // a maior manchete do sistema (h-word, palavra única)
+    circleNum: 26, // número dentro do círculo bem pequeno (list-v1)
+  }
+
+  // Escala de espaçamento — base 8px, dá ritmo consistente a gap/margin/
+  // padding (princípio de Proximidade/Repetição) em vez de cada regra inventar
+  // seu próprio número. Acertos ópticos finos (poucos px, tipo alinhar a base
+  // de duas fontes distintas) ficam fora da escala de propósito — não são
+  // espaçamento de composição, são ajuste de linha de base.
+  const SP = { xxs: 8, xs: 16, sm: 24, md: 32, lg: 40, xl: 48, xxl: 64, xxxl: 96 }
 
   return `
 ${fonte.faces}
     html,body{margin:0;width:${CANVAS_WIDTH}px;height:${H}px;overflow:hidden}
     *{box-sizing:border-box}
-    .slide{width:${CANVAS_WIDTH}px;height:${H}px;padding:${padTop}px 96px ${padBottom}px;display:flex;
+    .slide{width:${CANVAS_WIDTH}px;height:${H}px;padding:${padTop}px ${SP.xxxl}px ${padBottom}px;display:flex;
       flex-direction:column;justify-content:space-between;position:relative;z-index:0;overflow:hidden;
       font-family:${fonte.fontSans};-webkit-font-smoothing:antialiased}
     .t-light{background:#FFFFFF;color:${CLARO_TEXTO};--muted:${CLARO_MUDO};--acc:${brand.corPrimaria}}
@@ -96,151 +167,151 @@ ${fonte.faces}
     .mid.photo-over{justify-content:center}
     .photo-frame{position:relative;width:100%;border-radius:34px;overflow:hidden;background:linear-gradient(140deg,${brand.corPrimaria},${brand.corSecundaria});box-shadow:0 24px 64px rgba(12,10,45,.22)}
     .photo-over .photo-frame{height:600px}
-    .photo-frame .photo-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(.26) brightness(.94) contrast(1.03)}
-    .photo-frame .photo-tint{position:absolute;inset:0;background:linear-gradient(150deg,rgba(46,40,140,.26),rgba(29,78,216,.15))}
-    .photo-frame .photo-scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(8,6,28,.85),rgba(8,6,28,0) 55%)}
-    .photo-cap{position:absolute;left:0;right:0;bottom:0;padding:46px}
-    .photo-cap .h-sans{font-size:60px;line-height:1.16;color:#fff;margin:0}
+    .photo-frame .photo-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:${frameImgFiltro}}
+    .photo-frame .photo-tint{position:absolute;inset:0;background:linear-gradient(150deg,${frameTint})}
+    .photo-frame .photo-scrim{position:absolute;inset:0;background:linear-gradient(to top,${frameScrim})}
+    .photo-cap{position:absolute;left:0;right:0;bottom:0;padding:${SP.xl}px}
+    .photo-cap .h-sans{font-size:${T.subhead}px;line-height:1.16;color:#fff;margin:0}
     .photo-cap .h-sans em{color:#C7D2FE}
-    .photo-hint{font-family:${fonte.fontMono};font-size:24px;color:rgba(255,255,255,.82);margin-top:14px}
-    .photo-title{font-size:72px;line-height:1.16;margin:0}
+    .photo-hint{font-family:${fonte.fontMono};font-size:${T.caption}px;color:rgba(255,255,255,.82);margin-top:${SP.xs}px}
     .photo-bleed{position:absolute;inset:0;z-index:0;overflow:hidden}
-    .photo-bleed img{width:100%;height:100%;object-fit:cover;filter:grayscale(.14) brightness(.8) contrast(1.06)}
-    .photo-bleed .bleed-tint{position:absolute;inset:0;background:linear-gradient(150deg,color-mix(in srgb, ${brand.corPrimaria} 30%, transparent),color-mix(in srgb, ${brand.corSecundaria} 20%, transparent))}
-    .photo-bleed .bleed-scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(6,5,20,.94) 6%,rgba(6,5,20,.34) 46%,rgba(6,5,20,.66) 100%)}
+    .photo-bleed img{width:100%;height:100%;object-fit:cover;filter:${bleedImgFiltro}}
+    .photo-bleed .bleed-tint{position:absolute;inset:0;background:linear-gradient(150deg,${bleedTint})}
+    .photo-bleed .bleed-scrim{position:absolute;inset:0;background:linear-gradient(to top,${bleedScrim})}
     .photo-bleed-fallback{position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,rgba(6,5,20,.72) 6%,rgba(6,5,20,.15) 46%,rgba(6,5,20,.4) 100%),linear-gradient(140deg,${brand.corPrimaria},${brand.corSecundaria})}
-    .mid.photo-full{justify-content:flex-end;padding-bottom:26px}
-    .mid.photo-full .h-sans{font-family:${fonte.fontDisplay};font-size:90px;line-height:1.14;color:#fff}
+    .mid.photo-full{justify-content:flex-end;padding-bottom:${SP.sm}px}
+    .mid.photo-full .h-sans{font-family:${fonte.fontDisplay};font-size:${T.headlineLg}px;line-height:1.14;color:#fff}
     .mid.photo-full .h-sans em{color:#c4b5fd}
-    .mid.photo-full .hint{color:rgba(255,255,255,.86);margin-top:26px}
+    .mid.photo-full .hint{color:rgba(255,255,255,.86);margin-top:${SP.sm}px}
+    /* Layouts tipográficos com foto de fundo (cover/word/bottom/split/item/
+       list/cta/enquete) reaproveitam este mesmo tratamento — sempre texto
+       branco, independente do tema, já que a foto (não o tema) define o
+       fundo agora. */
+    .mid.photo-full .h-word,.mid.photo-full .h-display{color:#fff}
+    .mid.photo-full .h-word em,.mid.photo-full .h-display em{color:#c4b5fd}
+    /* split e item sobre foto: o usuário rejeitou tanto o número gigante
+       original quanto as duas tentativas seguintes de conter/diferenciar
+       ele (badge menor, depois badge vs. número empilhado) — pediu pra
+       remover o marcador por completo e dar mais peso ao texto em si.
+       Composição unificada (sem badge, sem número), título grande no
+       mesmo peso visual de um headline de capa sobre foto. */
+    .mid.photo-full .split-item-title{font-family:${fonte.fontDisplay};font-weight:700;font-size:${T.headline}px;line-height:1.1;letter-spacing:-.02em;color:#fff;margin:0}
+    .mid.photo-full .split-item-text{font-family:${fonte.fontSans};font-weight:400;font-size:${T.body}px;line-height:1.34;color:rgba(255,255,255,.86);margin:${SP.sm}px 0 0;max-width:26ch}
     /* 5 composições alternativas da capa (photo, full:true) — sorteada uma
        por post em montarSlidesPadrao (Slide.variante). Variante 0 é a
        original (acima, intocada). As 4 abaixo reaproveitam .photo-bleed/
        .photo-bleed-fallback como fundo, só mudando o scrim (pra photo real)
        e onde o texto fica. */
-    .photo-bleed .bleed-scrim-v1{position:absolute;inset:0;background:radial-gradient(120% 85% at 50% 48%, rgba(6,5,20,.3) 0%, rgba(6,5,20,.74) 100%)}
+    .photo-bleed .bleed-scrim-v1{position:absolute;inset:0;background:radial-gradient(120% 85% at 50% 48%, ${bleedScrimV1})}
     .mid.photo-full-v1{justify-content:center;align-items:center;text-align:center}
-    .mid.photo-full-v1 .h-sans{font-family:${fonte.fontDisplay};font-size:100px;line-height:1.1;color:#fff}
+    .mid.photo-full-v1 .h-sans{font-family:${fonte.fontDisplay};font-size:${T.headlineXl}px;line-height:1.1;color:#fff}
     .mid.photo-full-v1 .h-sans em{color:#c4b5fd}
-    .mid.photo-full-v1 .hint{color:rgba(255,255,255,.86);margin-top:26px}
-    .photo-bleed .bleed-scrim-v2{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(6,5,20,.92) 0%,rgba(6,5,20,.48) 34%,rgba(6,5,20,0) 58%)}
-    .mid.photo-full-v2{justify-content:flex-start;padding-top:8px}
-    .mid.photo-full-v2 .h-sans{font-family:${fonte.fontDisplay};font-size:84px;line-height:1.16;color:#fff}
+    .mid.photo-full-v1 .hint{color:rgba(255,255,255,.86);margin-top:${SP.sm}px}
+    .photo-bleed .bleed-scrim-v2{position:absolute;inset:0;background:linear-gradient(to bottom,${bleedScrimV2})}
+    .mid.photo-full-v2{justify-content:flex-start;padding-top:${SP.xxs}px}
+    .mid.photo-full-v2 .h-sans{font-family:${fonte.fontDisplay};font-size:${T.headlineSm}px;line-height:1.16;color:#fff}
     .mid.photo-full-v2 .h-sans em{color:#c4b5fd}
-    .mid.photo-full-v2 .hint{color:rgba(255,255,255,.86);margin-top:22px}
-    .photo-bleed .bleed-scrim-v3{position:absolute;inset:0;background:linear-gradient(to top,rgba(6,5,20,.24) 0%,rgba(6,5,20,0) 36%)}
+    .mid.photo-full-v2 .hint{color:rgba(255,255,255,.86);margin-top:${SP.sm}px}
+    .photo-bleed .bleed-scrim-v3{position:absolute;inset:0;background:linear-gradient(to top,${bleedScrimV3})}
     .mid.photo-full-v3{justify-content:flex-end}
     /* v4: manchete estilo capa de jornal esportivo (referência real trazida
        pelo usuário) — reaproveita o scrim mais forte já existente
        (bleed-scrim, o mesmo da v0), só a tipografia muda: bem maior, mais
        compacta e em caixa alta, pra "gritar" a notícia. */
-    .mid.photo-full-v4{justify-content:flex-end;padding-bottom:26px}
-    .mid.photo-full-v4 .h-sans{font-family:${fonte.fontDisplay};font-weight:800;font-size:112px;line-height:1.03;letter-spacing:-.02em;color:#fff;text-transform:uppercase}
+    .mid.photo-full-v4{justify-content:flex-end;padding-bottom:${SP.sm}px}
+    .mid.photo-full-v4 .h-sans{font-family:${fonte.fontDisplay};font-weight:800;font-size:${T.headlineHero}px;line-height:1.03;letter-spacing:-.02em;color:#fff;text-transform:uppercase}
     .mid.photo-full-v4 .h-sans em{color:#c4b5fd}
-    .mid.photo-full-v4 .hint{color:rgba(255,255,255,.86);margin-top:24px}
-    .painel-capa{background:linear-gradient(120deg,color-mix(in srgb, ${brand.corPrimaria} 92%, black),color-mix(in srgb, ${brand.corSecundaria} 88%, black));border-radius:32px;padding:44px 48px;box-shadow:0 24px 64px rgba(12,10,45,.35)}
-    .painel-capa .h-sans{font-family:${fonte.fontDisplay};font-size:72px;line-height:1.16;color:#fff;margin:0}
+    .mid.photo-full-v4 .hint{color:rgba(255,255,255,.86);margin-top:${SP.sm}px}
+    .painel-capa{background:linear-gradient(120deg,color-mix(in srgb, ${brand.corPrimaria} 92%, black),color-mix(in srgb, ${brand.corSecundaria} 88%, black));border-radius:32px;padding:${SP.lg}px ${SP.xl}px;box-shadow:0 24px 64px rgba(12,10,45,.35)}
+    .painel-capa .h-sans{font-family:${fonte.fontDisplay};font-size:${T.headline}px;line-height:1.16;color:#fff;margin:0}
     .painel-capa .h-sans em{color:#c4b5fd}
-    .painel-capa .hint{color:rgba(255,255,255,.86);margin-top:20px}
+    .painel-capa .hint{color:rgba(255,255,255,.86);margin-top:${SP.sm}px}
     /* Variantes dos layouts INTERNOS (não-capa) — mesmo princípio: sorteada
        uma por layout por post, variante 0 sempre a composição original. */
-    .mid.photo-over-v1{flex-direction:column;justify-content:center;gap:36px}
+    .mid.photo-over-v1{flex-direction:column;justify-content:center;gap:${SP.md}px}
     .mid.photo-over-v2{flex-direction:column-reverse}
     .photo-frame-v1{height:520px}
-    .photo-caption-v1 .h-sans{font-size:60px;line-height:1.18;margin:0}
-    .photo-caption-v1 .hint{margin-top:18px}
+    .photo-caption-v1 .h-sans{font-size:${T.subhead}px;line-height:1.18;margin:0}
+    .photo-caption-v1 .hint{margin-top:${SP.xs}px}
     .mid.photo-over-v3{flex-direction:column;justify-content:center;gap:0}
     .photo-frame-v3{border-radius:16px 16px 0 0;height:500px}
-    .photo-tag-v3{background:linear-gradient(120deg,${brand.corPrimaria},${brand.corSecundaria});border-radius:0 0 24px 24px;padding:36px 40px}
-    .photo-tag-v3 .h-sans{font-size:52px;line-height:1.2;color:#fff;margin:0}
-    .photo-tag-v3 .hint{color:rgba(255,255,255,.86);margin-top:14px}
-    .split-v1{flex-direction:column;align-items:flex-start;gap:24px}
-    .split-v1 .split-num{width:auto;font-size:150px;line-height:1}
-    .split-v1 .split-body{padding-top:0}
-    .split-v2{position:relative}
-    .split-v2 .split-num{position:absolute;left:-8px;top:-54px;font-size:320px;line-height:1;opacity:.16;z-index:-1;width:auto;color:var(--acc)}
-    .split-v2 .split-body{padding-top:16px}
-    .split-v3{border-left:8px solid var(--acc);padding-left:40px;gap:32px}
-    .split-v3 .split-num{font-size:120px;width:auto}
+    .photo-tag-v3{background:linear-gradient(120deg,${brand.corPrimaria},${brand.corSecundaria});border-radius:0 0 24px 24px;padding:${SP.md}px ${SP.lg}px}
+    .photo-tag-v3 .h-sans{font-size:${T.subhead}px;line-height:1.2;color:#fff;margin:0}
+    .photo-tag-v3 .hint{color:rgba(255,255,255,.86);margin-top:${SP.xs}px}
     .mid.word-v1{text-align:center;align-items:center}
     .mid.word-v2 .h-word em{background:var(--acc);color:#fff;padding:0 .1em;border-radius:.1em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
     /* Ancorado à direita, mas centralizado verticalmente — não embaixo
        (achado real: a legenda pequena grudava perto do paginador, no
        rodapé, ficando visualmente amontoada). */
     .mid.word-v3{justify-content:center;align-items:flex-end;text-align:right}
-    .mid.item-v1{flex-direction:row;align-items:center;gap:40px}
-    .item-badge-v1{width:150px;height:150px;flex:none;border-radius:50%;background:color-mix(in srgb, var(--acc) 16%, transparent);display:flex;align-items:center;justify-content:center}
-    .item-badge-v1 .num{font-size:72px;line-height:1}
-    .mid.item-v1 .item-body{display:flex;flex-direction:column}
-    .mid.item-v1 .item-text{margin-top:14px}
-    .mid.item-v2{position:relative}
-    .item-num-bg-v2{position:absolute;top:-30px;left:-6px;font-family:${fonte.fontDisplay};font-weight:800;font-size:280px;line-height:1;color:var(--acc);opacity:.14;z-index:-1}
-    .mid.item-v3{background:color-mix(in srgb, var(--acc) 7%, transparent);border-radius:28px;padding:52px}
-    .list-num-v1{width:44px;height:44px;border-radius:50%;background:color-mix(in srgb, var(--acc) 20%, transparent);color:var(--acc);font-family:${fonte.fontDisplay};font-weight:800;font-size:26px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px}
-    .list-item-v2{background:color-mix(in srgb, var(--acc) 6%, transparent);border-radius:20px;padding:22px 26px}
+    .list-num-v1{width:44px;height:44px;border-radius:50%;background:color-mix(in srgb, var(--acc) 20%, transparent);color:var(--acc);font-family:${fonte.fontDisplay};font-weight:800;font-size:${T.circleNum}px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px}
+    .list-item-v2{background:color-mix(in srgb, var(--acc) 6%, transparent);border-radius:20px;padding:${SP.sm}px}
     .list-check-v3{width:34px;height:34px;border-radius:10px;background:var(--acc);flex:none;margin-top:2px}
     .mid.bottom-v1{justify-content:center;padding-bottom:0}
-    .mid.bottom-v2{justify-content:flex-start;padding-top:8px;padding-bottom:0}
-    .accent-bar-v3{width:120px;height:10px;border-radius:6px;background:linear-gradient(120deg,${brand.corPrimaria},${brand.corSecundaria});margin-bottom:28px}
+    .mid.bottom-v2{justify-content:flex-start;padding-top:${SP.xxs}px;padding-bottom:0}
+    .accent-bar-v3{width:120px;height:10px;border-radius:6px;background:linear-gradient(120deg,${brand.corPrimaria},${brand.corSecundaria});margin-bottom:${SP.sm}px}
     .mid.cta-v1{justify-content:center;padding-bottom:0}
-    .mid.cta-v3{justify-content:flex-start;padding-top:8px;padding-bottom:0}
-    .url-pill-v2{display:inline-block;font-family:${fonte.fontMono};font-size:28px;color:#fff;background:linear-gradient(120deg,${brand.corPrimaria},${brand.corSecundaria});padding:16px 32px;border-radius:999px;margin-top:34px;letter-spacing:.02em}
-    .head{display:flex;flex-direction:column;align-items:flex-start;gap:24px}
+    .mid.cta-v3{justify-content:flex-start;padding-top:${SP.xxs}px;padding-bottom:0}
+    .url-pill-v2{display:inline-block;font-family:${fonte.fontMono};font-size:${T.caption}px;color:#fff;background:linear-gradient(120deg,${brand.corPrimaria},${brand.corSecundaria});padding:${SP.xs}px ${SP.md}px;border-radius:999px;margin-top:${SP.md}px;letter-spacing:.02em}
+    .head{display:flex;flex-direction:column;align-items:flex-start;gap:${SP.sm}px}
     .logo-top{height:88px;width:auto;align-self:flex-start;display:block}
     .logo-sm{height:44px;width:auto;display:block}
-    .kicker{font-family:${fonte.fontMono};text-transform:uppercase;letter-spacing:.16em;font-size:24px;color:var(--acc);font-weight:600}
     .mid{flex:1;display:flex;flex-direction:column;justify-content:center}
     .mid.lower{justify-content:flex-end}
     .mid.botspace{padding-bottom:${H > 1400 ? 170 : 76}px}
     .mid.logocover{align-items:center;justify-content:center;text-align:center}
     .cover-logo{width:760px;max-width:88%;height:auto}
-    .cover-tag{font-family:${fonte.fontMono};text-transform:uppercase;letter-spacing:.24em;font-size:30px;color:var(--muted);margin-top:40px}
-    .h-display{font-family:${fonte.fontDisplay};font-weight:700;font-size:78px;line-height:1.16;letter-spacing:-.02em;margin:0;text-wrap:balance}
-    .h-sans{font-family:${fonte.fontDisplay};font-weight:800;font-size:78px;line-height:1.16;letter-spacing:-.025em;margin:0;text-wrap:balance}
-    .h-word{font-family:${fonte.fontDisplay};font-weight:800;font-size:148px;line-height:1.1;letter-spacing:-.035em;margin:0;text-wrap:balance}
+    .cover-tag{font-family:${fonte.fontMono};text-transform:uppercase;letter-spacing:.24em;font-size:${T.caption}px;color:var(--muted);margin-top:${SP.lg}px}
+    .h-display{font-family:${fonte.fontDisplay};font-weight:700;font-size:${T.headline}px;line-height:1.16;letter-spacing:-.02em;margin:0;text-wrap:balance}
+    .h-sans{font-family:${fonte.fontDisplay};font-weight:800;font-size:${T.headline}px;line-height:1.16;letter-spacing:-.025em;margin:0;text-wrap:balance}
+    .h-word{font-family:${fonte.fontDisplay};font-weight:800;font-size:${T.display}px;line-height:1.1;letter-spacing:-.035em;margin:0;text-wrap:balance}
     .h-display em,.h-sans em,.h-word em{color:var(--acc);font-style:normal}
-    .num,.split-num{color:var(--acc)}
-    .num{font-family:${fonte.fontDisplay};font-weight:800;font-size:128px;line-height:1;letter-spacing:-.04em}
-    .item-title{font-family:${fonte.fontDisplay};font-weight:700;font-size:64px;letter-spacing:-.02em;margin:4px 0 0}
-    .item-text{font-family:${fonte.fontSans};font-weight:400;font-size:45px;line-height:1.32;color:var(--muted);margin:20px 0 0;max-width:30ch}
-    .split{display:flex;align-items:flex-start;gap:48px}
-    .split-num{font-family:${fonte.fontDisplay};font-weight:800;font-size:208px;line-height:.76;letter-spacing:-.05em;flex:none;width:172px}
-    .split.wide .split-num{width:300px;font-size:168px;letter-spacing:-.045em}
-    .split.wide .item-title{font-size:56px}
-    .split-body{flex:1;padding-top:6px}
-    .split-body .item-title{font-family:${fonte.fontDisplay};font-weight:700;font-size:63px;line-height:1.14;letter-spacing:-.025em;margin:0}
-    .split-text{font-family:${fonte.fontSans};font-weight:400;font-size:45px;line-height:1.32;color:var(--muted);margin:22px 0 0;max-width:20ch}
-    .list-mid{gap:52px}
-    .list-title{font-family:${fonte.fontDisplay};font-weight:700;font-size:58px;letter-spacing:-.02em;line-height:1.16;margin:0;text-wrap:balance}
-    .list{display:flex;flex-direction:column;gap:34px}
-    .list-item{display:flex;align-items:flex-start;gap:24px}
+    /* split e item (flat, sem foto): mesma simplificação já aplicada à versão
+       sobre foto — o usuário rejeitou toda tentativa de marcador numérico
+       (número gigante ao lado, empilhado, badge circular, marca d'água) e
+       pediu remoção completa, com mais peso pro texto. As duas layouts
+       convergem pra uma única composição (título + texto), sem o campo "num"
+       em tela — ver a função tituloTextoHTML. */
+    .item-title{font-family:${fonte.fontDisplay};font-weight:700;font-size:${T.title}px;letter-spacing:-.02em;margin:0}
+    .item-text{font-family:${fonte.fontSans};font-weight:400;font-size:${T.body}px;line-height:1.32;color:var(--muted);margin:${SP.sm}px 0 0;max-width:30ch}
+    .list-mid{gap:${SP.xl}px}
+    .list-title{font-family:${fonte.fontDisplay};font-weight:700;font-size:${T.subhead}px;letter-spacing:-.02em;line-height:1.16;margin:0;text-wrap:balance}
+    .list{display:flex;flex-direction:column;gap:${SP.md}px}
+    .list-item{display:flex;align-items:flex-start;gap:${SP.sm}px}
     .list-dot{width:26px;height:26px;border-radius:8px;margin-top:12px;flex:none;background:linear-gradient(135deg,${brand.corPrimaria},${brand.corSecundaria})}
-    .list-txt{font-family:${fonte.fontSans};font-size:42px;line-height:1.3;font-weight:500}
-    .hint{font-family:${fonte.fontMono};font-size:26px;color:var(--muted);margin-top:32px}
+    .list-txt{font-family:${fonte.fontSans};font-size:${T.body}px;line-height:1.3;font-weight:500}
+    .hint{font-family:${fonte.fontMono};font-size:${T.caption}px;color:var(--muted);margin-top:${SP.md}px}
+    /* Interativo (enquete) — tratamento mínimo e funcional, não a passada de
+       design final (isso vem na rodada de "layouts aprovados"): mostra a
+       pergunta, as opções como texto simples e uma nota de que o espaço é
+       reservado pra empresa inserir o sticker nativo do Instagram. */
+    .enquete-opcoes{display:flex;flex-direction:column;gap:${SP.sm}px;margin-top:${SP.lg}px}
+    .enquete-opcao{font-family:${fonte.fontSans};font-weight:600;font-size:${T.body}px;padding:${SP.sm}px ${SP.md}px;border-radius:20px;border:2px solid color-mix(in srgb, var(--acc) 40%, transparent);background:color-mix(in srgb, var(--acc) 10%, transparent)}
+    .enquete-nota{font-family:${fonte.fontMono};font-size:${T.micro}px;color:var(--muted);margin-top:${SP.md}px;text-transform:uppercase;letter-spacing:.08em}
     /* Gráfico de barras (estilo "grafico") — peça estática única, não faz
        parte do sistema de variantes dos outros layouts (1 composição só, por
        enquanto). Altura de cada barra vem calculada em TS (proporcional ao
        maior valor do conjunto), não em CSS. */
     .mid.grafico-mid{justify-content:flex-start}
-    .grafico-titulo{font-size:58px;line-height:1.22}
-    .grafico-subtitulo{font-family:${fonte.fontSans};font-weight:400;font-size:32px;line-height:1.4;color:var(--muted);margin:18px 0 0;max-width:36ch}
-    .grafico-barras{flex:1;display:flex;align-items:flex-end;gap:24px;padding-top:36px}
+    .grafico-titulo{font-size:${T.subhead}px;line-height:1.22}
+    .grafico-subtitulo{font-family:${fonte.fontSans};font-weight:400;font-size:${T.small}px;line-height:1.4;color:var(--muted);margin:${SP.xs}px 0 0;max-width:36ch}
+    .grafico-barras{flex:1;display:flex;align-items:flex-end;gap:${SP.sm}px;padding-top:${SP.md}px}
     .grafico-coluna{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center}
-    .grafico-valor{font-family:${fonte.fontDisplay};font-weight:800;font-size:32px;line-height:1.1;margin-bottom:14px;text-align:center}
+    .grafico-valor{font-family:${fonte.fontDisplay};font-weight:800;font-size:${T.small}px;line-height:1.1;margin-bottom:${SP.xs}px;text-align:center}
     .grafico-barra{width:100%;max-width:110px;border-radius:12px 12px 0 0;background:var(--acc)}
     .grafico-barra-destaque{background:linear-gradient(180deg,#22c55e,#16a34a)}
-    .grafico-rotulo{font-family:${fonte.fontSans};font-weight:700;font-size:24px;line-height:1.25;margin-top:16px;text-align:center}
-    .grafico-subrotulo{font-family:${fonte.fontMono};font-size:20px;color:var(--muted);margin-top:4px}
-    .url{font-family:${fonte.fontMono};font-size:30px;color:var(--acc);margin-top:34px;letter-spacing:.02em}
-    .t-light .h-display em,.t-light .h-sans em,.t-light .h-word em,.t-light .num,.t-light .split-num,.t-light .url,.t-light .list-title em,
-    .t-paper .h-display em,.t-paper .h-sans em,.t-paper .num,.t-paper .split-num,.t-paper .url,.t-paper .list-title em{
+    .grafico-rotulo{font-family:${fonte.fontSans};font-weight:700;font-size:${T.label}px;line-height:1.25;margin-top:${SP.xs}px;text-align:center}
+    .grafico-subrotulo{font-family:${fonte.fontMono};font-size:${T.micro}px;color:var(--muted);margin-top:4px}
+    .url{font-family:${fonte.fontMono};font-size:${T.caption}px;color:var(--acc);margin-top:${SP.md}px;letter-spacing:.02em}
+    .t-light .h-display em,.t-light .h-sans em,.t-light .h-word em,.t-light .url,.t-light .list-title em,
+    .t-paper .h-display em,.t-paper .h-sans em,.t-paper .url,.t-paper .list-title em{
       background:${grad};-webkit-background-clip:text;background-clip:text;color:transparent}
-    .t-ink .h-display em,.t-ink .h-sans em,.t-ink .h-word em,.t-ink .num,.t-ink .split-num,.t-ink .url,.t-ink .list-title em{color:var(--acc)}
+    .t-ink .h-display em,.t-ink .h-sans em,.t-ink .h-word em,.t-ink .url,.t-ink .list-title em{color:var(--acc)}
     .list-title em{font-style:normal}
     .foot{display:flex;align-items:center;justify-content:space-between;min-height:44px}
-    .lockup{display:flex;align-items:center;gap:16px;font-size:26px}
+    .lockup{display:flex;align-items:center;gap:${SP.xs}px;font-size:${T.caption}px}
     .lockup .m{color:var(--muted);position:relative;top:3px}
-    .count{font-family:${fonte.fontMono};font-size:24px;color:var(--muted);letter-spacing:.1em}
+    .count{font-family:${fonte.fontMono};font-size:${T.label}px;color:var(--muted);letter-spacing:.1em}
   `
 }
 
@@ -263,10 +334,13 @@ const lockup = (A: Assets, brand: BrandKit) =>
 const counter = (i: number, t: number) =>
   t <= 1 ? '' : `<span class="count">${String(i + 1).padStart(2, '0')} / ${String(t).padStart(2, '0')}</span>`
 
+// O rótulo (kicker) foi removido a pedido do usuário — a etiqueta em caixa
+// alta na cor de destaque da marca ("O QUE MUDOU", "11H37 DE UMA TERÇA") não
+// agradou visualmente. `.head` agora só carrega a logo grande da capa, quando
+// existe.
 function headBlock(s: Slide, A: Assets): string {
   const bigLogo = s.logoTop ? `<img class="logo-top" src="${A.logo}" alt="logo">` : ''
-  const kicker = s.kicker ? `<div class="kicker">${s.kicker}</div>` : ''
-  return `<div class="head">${bigLogo}${kicker}</div>`
+  return `<div class="head">${bigLogo}</div>`
 }
 
 function footBlock(s: Slide, i: number, t: number, A: Assets, brand: BrandKit): string {
@@ -317,31 +391,15 @@ function photoInternaHTML(s: Slide, uri: string, img: string, hint: string): str
   return `<div class="mid photo-over"><div class="photo-frame">${img}<div class="photo-tint"></div><div class="photo-scrim"></div><div class="photo-cap"><h1 class="h-sans">${s.headline}</h1>${h}</div></div></div>`
 }
 
-// split: v0 número ao lado (original); v1 número empilhado acima do texto;
-// v2 número gigante e apagado atrás do texto (marca d'água); v3 barra de
-// destaque na lateral, número menor.
-function splitHTML(s: Slide): string {
-  const variante = variante4(s)
-  const largo = String(s.num ?? '').length > 1 ? 'wide' : ''
-  const classeSplit = variante === 0 ? `split ${largo}` : `split split-v${variante} ${largo}`.trim()
-  return `<div class="mid"><div class="${classeSplit}"><div class="split-num">${s.num}</div><div class="split-body"><div class="item-title">${s.title}</div><div class="split-text">${s.text}</div></div></div></div>`
-}
-
-// item: v0 empilhado (original); v1 número em badge circular, lado a lado
-// com o texto; v2 número gigante e apagado atrás do título; v3 card com
-// fundo levemente destacado.
-function itemHTML(s: Slide): string {
-  const variante = variante4(s)
-  if (variante === 1) {
-    return `<div class="mid item-v1"><div class="item-badge-v1"><div class="num">${s.num}</div></div><div class="item-body"><div class="item-title">${s.title}</div><div class="item-text">${s.text}</div></div></div>`
-  }
-  if (variante === 2) {
-    return `<div class="mid item-v2"><div class="item-num-bg-v2">${s.num}</div><div class="item-title">${s.title}</div><div class="item-text">${s.text}</div></div>`
-  }
-  if (variante === 3) {
-    return `<div class="mid item-v3"><div class="num">${s.num}</div><div class="item-title">${s.title}</div><div class="item-text">${s.text}</div></div>`
-  }
-  return `<div class="mid"><div class="num">${s.num}</div><div class="item-title">${s.title}</div><div class="item-text">${s.text}</div></div>`
+// split/item (flat, sem foto): composição única (título + texto), sem `num`
+// em tela — mesma simplificação já aplicada à versão sobre foto (o usuário
+// rejeitou toda tentativa de marcador numérico, incluindo as variantes só
+// desta versão flat que ainda mostravam resíduo do item removido — número ao
+// lado, empilhado, badge circular, marca d'água). As duas layouts convergem
+// pra esta mesma função; continuam sendo `Layout`s distintos no schema (papel
+// narrativo próprio em cada receita), só o tratamento visual é idêntico agora.
+function tituloTextoHTML(s: Slide): string {
+  return `<div class="mid"><div class="item-title">${s.title}</div><div class="item-text">${s.text}</div></div>`
 }
 
 // list: v0 bolinha (original); v1 número em círculo; v2 cada item num card
@@ -387,11 +445,70 @@ function graficoHTML(s: Slide): string {
   return `<div class="mid grafico-mid"><div><h1 class="h-display grafico-titulo">${s.headline ?? ''}</h1>${subtitulo}</div><div class="grafico-barras">${colunas}</div>${fonte}</div>`
 }
 
+// Reaproveita o mesmo fundo de foto full-bleed da capa (photo, full:true)
+// pra qualquer layout tipográfico que tenha ganho uma foto de fundo (achado
+// real do usuário: fundo de foto + texto flutuante lê muito mais sofisticado
+// que cartão em fundo liso — que devia virar exceção, não regra). Sem foto,
+// cai no mesmo gradiente de marca já usado como fallback da capa.
+function fundoDeFoto(s: Slide): string {
+  const uri = s.photoDataUri ?? ''
+  return uri
+    ? `<div class="photo-bleed"><img src="${uri}" alt=""><div class="bleed-tint"></div><div class="bleed-scrim"></div></div>`
+    : `<div class="photo-bleed-fallback"></div>`
+}
+
+// Composição tipográfica sobre foto de fundo — reaproveita exatamente o
+// mesmo tratamento visual já validado na capa (`.mid.photo-full`: texto
+// ancorado embaixo, branco, hint a 86% de opacidade) pros demais layouts.
+// Ignora de propósito o sistema de variantes de cada layout (variante só
+// existe pro fallback sem foto, o "cartão liso" que agora é a exceção) —
+// sempre usa o arranjo original (v0) do layout, só trocando o fundo liso
+// por foto + texto flutuante.
+function conteudoTipograficoSobreFoto(s: Slide, L: Layout, hint: string, url: string): string {
+  const fundo = fundoDeFoto(s)
+  if (L === 'cover' || L === 'cta') {
+    return `${fundo}<div class="mid photo-full"><h1 class="h-sans">${s.headline}</h1>${L === 'cta' ? url : hint}</div>`
+  }
+  if (L === 'word') {
+    return `${fundo}<div class="mid photo-full"><h1 class="h-word">${s.headline}</h1>${hint}</div>`
+  }
+  if (L === 'bottom') {
+    return `${fundo}<div class="mid photo-full"><h1 class="h-display">${s.headline}</h1></div>`
+  }
+  if (L === 'split' || L === 'item') {
+    // O marcador numérico (v0 gigante, depois badge pequeno, depois número
+    // empilhado) passou por 2 tentativas de correção nesta mesma sessão e o
+    // usuário rejeitou as duas — pediu remoção completa, com mais ênfase no
+    // texto. Composição única (sem `num` em tela), título no mesmo peso
+    // visual de um headline de capa sobre foto.
+    return `${fundo}<div class="mid photo-full"><div class="split-item-title">${s.title}</div><div class="split-item-text">${s.text}</div></div>`
+  }
+  if (L === 'list') {
+    const hd = s.headline ? `<h2 class="list-title">${s.headline}</h2>` : ''
+    const itens = (s.items ?? []).map((it) => `<div class="list-item"><span class="list-dot"></span><span class="list-txt">${it}</span></div>`).join('')
+    return `${fundo}<div class="mid photo-full list-mid">${hd}<div class="list">${itens}</div></div>`
+  }
+  if (L === 'enquete') {
+    const opcoes = (s.items ?? []).map((it) => `<div class="enquete-opcao">${it}</div>`).join('')
+    return `${fundo}<div class="mid photo-full"><h1 class="h-display">${s.headline ?? ''}</h1><div class="enquete-opcoes">${opcoes}</div><div class="enquete-nota">Espaço reservado para a enquete nativa do Instagram</div>${hint}</div>`
+  }
+  return `${fundo}<div class="mid photo-full"><h1 class="h-display">${s.headline ?? ''}</h1></div>`
+}
+
 function midBlock(s: Slide, A: Assets): string {
   const L = s.layout || 'statement'
   const hint = s.hint ? `<div class="hint">${s.hint}</div>` : ''
   const url = s.url ? `<div class="url">${s.url}</div>` : ''
   const variante = variante4(s)
+
+  // Layouts tipográficos ganham foto de fundo igual a capa já tinha — exclui
+  // `photo` (já cuida da própria foto abaixo, com seu próprio sistema de
+  // variantes), `logocover`/`tweet`/`grafico` (composições fixas, sem noção
+  // de "foto de fundo" fazer sentido).
+  const podeReceberFoto = L !== 'photo' && L !== 'logocover' && L !== 'tweet' && L !== 'grafico'
+  if (podeReceberFoto && s.photoDataUri) {
+    return conteudoTipograficoSobreFoto(s, L, hint, url)
+  }
 
   if (L === 'logocover') {
     return `<div class="mid logocover"><img class="cover-logo" src="${A.logo}" alt="logo"><div class="cover-tag">${s.tagline ?? ''}</div></div>`
@@ -428,10 +545,13 @@ function midBlock(s: Slide, A: Assets): string {
     if (variante === 3) return `<div class="mid lower botspace"><div class="accent-bar-v3"></div><h1 class="h-display">${s.headline}</h1></div>`
     return `<div class="mid lower botspace"><h1 class="h-display">${s.headline}</h1></div>`
   }
-  if (L === 'item') return itemHTML(s)
-  if (L === 'split') return splitHTML(s)
+  if (L === 'item' || L === 'split') return tituloTextoHTML(s)
   if (L === 'list') return listHTML(s)
   if (L === 'grafico') return graficoHTML(s)
+  if (L === 'enquete') {
+    const opcoes = (s.items ?? []).map((it) => `<div class="enquete-opcao">${it}</div>`).join('')
+    return `<div class="mid lower botspace"><h1 class="h-display">${s.headline ?? ''}</h1><div class="enquete-opcoes">${opcoes}</div><div class="enquete-nota">Espaço reservado para a enquete nativa do Instagram</div>${hint}</div>`
+  }
   return `<div class="mid"><h1 class="h-display">${s.headline}</h1></div>`
 }
 
@@ -440,8 +560,9 @@ function wmMarkup(s: Slide, A: Assets): string {
   if (L === 'logocover') return ''
   // Foto real já cumpre o papel decorativo do ícone de marca — só mostra o
   // ícone quando a foto está faltando (fallback), pra não deixar o slide sem
-  // nenhuma decoração de marca.
-  if (L === 'photo' && s.photoDataUri) return ''
+  // nenhuma decoração de marca. Vale pra qualquer layout agora que ganhou
+  // foto de fundo, não só `photo`.
+  if (s.photoDataUri) return ''
   return A.icon ? `<img class="wm" src="${A.icon}" alt="">` : ''
 }
 
@@ -475,9 +596,10 @@ export function pageHTML(
   padTop: number,
   padBottom: number,
   brand: BrandKit,
+  tipo?: TipoConteudo,
 ): string {
   if (slide.layout === 'tweet') return tweetPageHTML(slide, index, total, altura, padTop, padBottom, brand)
   const theme = slide.theme ?? brand.temaPadrao
   const A = assetsFor(theme, brand)
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>${css(brand, altura, padTop, padBottom)}</style></head><body><div class="slide t-${theme}">${wmMarkup(slide, A)}${headBlock(slide, A)}${midBlock(slide, A)}${footBlock(slide, index, total, A, brand)}</div></body></html>`
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>${css(brand, altura, padTop, padBottom, tipo)}</style></head><body><div class="slide t-${theme}">${wmMarkup(slide, A)}${headBlock(slide, A)}${midBlock(slide, A)}${footBlock(slide, index, total, A, brand)}</div></body></html>`
 }

@@ -1,8 +1,15 @@
 import type { FastifyInstance } from 'fastify'
-import { METODO_CONVERSAO_PADRAO, type RedeSocial } from '@gridgen/shared'
+import { type RedeSocial } from '@gridgen/shared'
 import { resolverImagemAutomatica } from '../../lib/imagem-automatica.js'
 import { idDoJobPrepararRede } from '../../plugins/preparar-redes.js'
-import { extrairHandleInstagram, proximoSlugDePost, slidesDoJson, slidesParaJson, textoConversao } from '../posts/posts.service.js'
+import {
+  extrairHandleInstagram,
+  proximoSlugDePost,
+  resolverMetodoConversaoPadrao,
+  slidesDoJson,
+  slidesParaJson,
+  textoConversao,
+} from '../posts/posts.service.js'
 import { adaptarRascunhoParaRede, gerarRascunhoComIA } from './geracao.service.js'
 import { gerarComIaSchema } from './geracao.schemas.js'
 
@@ -29,8 +36,39 @@ export default async function geracaoRoutes(app: FastifyInstance) {
         .send({ erro: 'preencha o Instagram do perfil (aba Contato) antes de usar o estilo Tweet — ele aparece no card gerado' })
     }
 
+    // Prova Social nunca pode ser fabricada (doc editorial: "não produzir
+    // Prova Social fictícia") — exige pelo menos 1 print real já guardado na
+    // pasta "Prova Social" da Galeria antes de gastar a chamada de IA.
+    if (body.tipo === 'prova_social') {
+      const temMaterial = await app.prisma.galeriaItem.count({ where: { perfilId, pasta: 'Prova Social' } })
+      if (temMaterial === 0) {
+        return reply.code(400).send({
+          erro: 'adicione pelo menos um print de feedback real na pasta "Prova Social" da Galeria antes de gerar este tipo de post',
+        })
+      }
+    }
+
+    // Pasta de referência da publicação (ex.: "Imóvel Lançamento X") — material
+    // real específico dessa peça, não do Perfil todo. Confere que a pasta
+    // existe de verdade antes de gastar a chamada de IA (mesmo espírito do
+    // gate de Prova Social) — sem isso, um nome digitado errado passaria
+    // batido e caía silenciosamente na busca genérica, sem avisar ninguém.
+    let imagensReferencia: string[] = []
+    if (body.pastaReferencia) {
+      const itensReferencia = await app.prisma.galeriaItem.findMany({
+        where: { perfilId, pasta: body.pastaReferencia },
+        orderBy: { createdAt: 'asc' },
+      })
+      if (itensReferencia.length === 0) {
+        return reply.code(400).send({
+          erro: `a pasta "${body.pastaReferencia}" da Galeria não tem nenhuma imagem — confira o nome ou adicione as fotos de referência antes de gerar`,
+        })
+      }
+      imagensReferencia = itensReferencia.map((item) => item.url)
+    }
+
     const contexto = await app.prisma.contextoMarkdown.findUnique({ where: { perfilId } })
-    const metodoConversao = body.metodoConversao ?? METODO_CONVERSAO_PADRAO[body.tipo]
+    const metodoConversao = body.metodoConversao ?? resolverMetodoConversaoPadrao(body.tipo, perfil)
 
     let rascunho
     try {
@@ -52,16 +90,23 @@ export default async function geracaoRoutes(app: FastifyInstance) {
     }
 
     // Pra cada slide onde a IA sugeriu uma busca de imagem (`buscasImagem`,
-    // opcional no estilo "tweet", obrigatória nos slides `photo` do estilo
-    // "padrão"), resolve de verdade — Galeria do Perfil primeiro, Pexels de
-    // fallback — sem o usuário precisar anexar nada manualmente. Em paralelo
-    // (cada slide é independente); falha em uma busca não derruba as outras
-    // nem a geração (mesmo espírito de "foto sempre opcional" já
-    // estabelecido no resto do produto — no pior caso, o slide `photo` cai
-    // no fallback visual de gradiente que já existe).
+    // obrigatória só na capa e no layout `photo` — opcional nos demais, pra o
+    // carrossel variar entre telas flat e humanizadas, ver comentário de
+    // `layoutsComImagemObrigatoria` em geracao.service.ts), resolve de
+    // verdade sem o usuário precisar anexar nada manualmente — nessa ordem:
+    // 1) pasta de referência da publicação (quando informada), uma imagem
+    // DISTINTA por slide, em ordem; 2) Galeria geral do Perfil por palavra-
+    // chave; 3) Pexels. Falha em uma busca não derruba as outras nem a
+    // geração (mesmo espírito de "foto sempre opcional" já estabelecido no
+    // resto do produto — no pior caso, o slide cai no fallback visual de
+    // gradiente que já existe).
     if (rascunho.buscasImagem) {
       await Promise.all(
         rascunho.buscasImagem.map(async (consulta, i) => {
+          if (imagensReferencia[i]) {
+            rascunho.slides[i].photoDataUri = imagensReferencia[i]
+            return
+          }
           if (!consulta) return
           const imagem = await resolverImagemAutomatica(app.prisma, perfilId, consulta)
           if (imagem) rascunho.slides[i].photoDataUri = imagem

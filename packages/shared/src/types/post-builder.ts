@@ -6,37 +6,28 @@ import type { EstiloVisual, Layout, Slide, Tema, TipoConteudo } from './post.js'
 import { receitaDe } from './tipos.js'
 import { sortearVariante, VARIANTES_CAPA, VARIANTES_INTERNA } from './variantes.js'
 
-// `estilo` decide COMO o carrossel fica visualmente; o `tipo` continua
-// decidindo quantas "telas" a narrativa precisa (`receita.receita.length`) —
-// no estilo "tweet", só a quantidade de slides da receita é reaproveitada,
-// não a sequência de layouts nem o tratamento de capa (tema/full/logoTop não
-// se aplicam a um card de tweet, que tem sua própria composição fixa).
-export function montarSlidesPadrao(tipo: TipoConteudo, estilo: EstiloVisual = 'padrao', temaAlternativo: Tema = 'ink'): Slide[] {
+// Monta o metadado visual (tema/full/logoTop/variante) de um carrossel do
+// estilo "padrao" a partir de uma sequência de LAYOUTS já decidida —
+// extraído de `montarSlidesPadrao` pra ser reaproveitado tanto pela sequência
+// padrão do tipo (`receita.receita`) quanto pela sequência que a IA de fato
+// devolveu quando gera dentro de uma faixa min/max de telas (a contagem pode
+// variar; o tratamento visual de capa/corpo continua o mesmo). Índice 0 é
+// sempre tratado como a capa do tipo.
+export function aplicarMetadadosSlides(tipo: TipoConteudo, layouts: Layout[]): Slide[] {
   const receita = receitaDe(tipo)
-  if (estilo === 'tweet') {
-    return receita.receita.map(() => ({ layout: 'tweet' as Layout, theme: temaAlternativo }))
-  }
-  // Peça estática única, não um carrossel narrativo — a contagem de slides
-  // da receita não se aplica aqui (diferente do "tweet", que reaproveita a
-  // contagem). O conteúdo numérico (`barras`) nunca vem da IA, então nasce
-  // vazio: o usuário preenche na tela de edição antes de gerar a imagem.
-  if (estilo === 'grafico') {
-    return [{ layout: 'grafico' as Layout, theme: temaAlternativo, logoTop: true }]
-  }
-
   // Sorteia 1 variante por combinação (layout, capa ou uso interno) presente
-  // na receita — todo slide que usa o MESMO layout na MESMA posição (capa ou
-  // não) sai com a mesma composição, pra manter consistência visual dentro
-  // do próprio carrossel. O sorteio é por chamada, então o próximo post do
-  // mesmo tipo tende a sair diferente (achado real do usuário: hoje todo
-  // post do mesmo tipo tem a cara idêntica).
-  const varianteCapa = sortearVariante(VARIANTES_CAPA, receita.receita[0])
+  // nesta sequência — todo slide que usa o MESMO layout na MESMA posição
+  // (capa ou não) sai com a mesma composição, pra manter consistência visual
+  // dentro do próprio carrossel. O sorteio é por chamada, então o próximo
+  // post do mesmo tipo tende a sair diferente (achado real do usuário: hoje
+  // todo post do mesmo tipo tem a cara idêntica).
+  const varianteCapa = sortearVariante(VARIANTES_CAPA, layouts[0])
   const variantesInternas = new Map<Layout, number>()
-  for (const layout of receita.receita.slice(1)) {
+  for (const layout of layouts.slice(1)) {
     if (!variantesInternas.has(layout)) variantesInternas.set(layout, sortearVariante(VARIANTES_INTERNA, layout))
   }
 
-  return receita.receita.map((layout, i) => {
+  return layouts.map((layout, i) => {
     const slide: Slide = { layout }
     if (i === 0) {
       slide.theme = receita.capa.theme
@@ -51,7 +42,31 @@ export function montarSlidesPadrao(tipo: TipoConteudo, estilo: EstiloVisual = 'p
   })
 }
 
-export type TipoCampoSlide = 'texto' | 'texto-longo' | 'numero' | 'lista' | 'foto' | 'url' | 'grafico-itens'
+// `estilo` decide COMO o carrossel fica visualmente; o `tipo` continua
+// decidindo quantas "telas" a narrativa precisa por padrão
+// (`receita.receita.length`) — no estilo "tweet", só a quantidade de slides
+// da receita é reaproveitada, não a sequência de layouts nem o tratamento de
+// capa (tema/full/logoTop não se aplicam a um card de tweet, que tem sua
+// própria composição fixa). No estilo "padrao", esta função devolve a
+// sequência PADRÃO (usada como esqueleto de preview/edição manual) — a
+// geração por IA de verdade pode variar essa contagem dentro da faixa
+// `minTelas`/`maxTelas` do tipo (ver `geracao.service.ts`).
+export function montarSlidesPadrao(tipo: TipoConteudo, estilo: EstiloVisual = 'padrao', temaAlternativo: Tema = 'ink'): Slide[] {
+  const receita = receitaDe(tipo)
+  if (estilo === 'tweet') {
+    return receita.receita.map(() => ({ layout: 'tweet' as Layout, theme: temaAlternativo }))
+  }
+  // Peça estática única, não um carrossel narrativo — a contagem de slides
+  // da receita não se aplica aqui (diferente do "tweet", que reaproveita a
+  // contagem). O conteúdo numérico (`barras`) nunca vem da IA, então nasce
+  // vazio: o usuário preenche na tela de edição antes de gerar a imagem.
+  if (estilo === 'grafico') {
+    return [{ layout: 'grafico' as Layout, theme: temaAlternativo, logoTop: true }]
+  }
+  return aplicarMetadadosSlides(tipo, receita.receita)
+}
+
+export type TipoCampoSlide = 'texto' | 'texto-longo' | 'lista' | 'foto' | 'url' | 'grafico-itens'
 
 export interface CampoSlide {
   nome: keyof Slide
@@ -78,19 +93,6 @@ export interface CampoSlide {
   direcaoIA?: string
 }
 
-// Achado real: sem instrução própria, a IA às vezes escrevia literalmente o
-// nome do tipo de conteúdo ("DADO", "DOR") como kicker — genérico, sem
-// nenhuma moldura narrativa. Quando funciona bem (ex.: "A CENA DE DOMINGO",
-// "ENQUANTO ISSO"), o kicker ancora a cena específica daquele slide; a
-// direção existe pra puxar sempre pro segundo caso.
-const KICKER: CampoSlide = {
-  nome: 'kicker',
-  label: 'Rótulo (kicker)',
-  tipo: 'texto',
-  maxLength: 40,
-  direcaoIA:
-    'Uma etiqueta curta (2-4 palavras) que ancora a cena ESPECÍFICA desse slide — algo como "A CENA DE DOMINGO", "ENQUANTO ISSO", "O DADO REAL". NUNCA o nome do tipo de conteúdo ou uma categoria genérica (proibido: "DOR", "DADO", "PROVA", "OFERTA" sozinhos, ou qualquer variação óbvia deles).',
-}
 // Achado real: sem direção própria, a IA às vezes escrevia um complemento
 // curto demais pra fazer sentido sozinho (ex.: "Você ainda está na
 // primeira" — primeira o quê?), exigindo interpretação demais de quem lê em
@@ -105,10 +107,19 @@ const HINT: CampoSlide = {
     'Um complemento curto que precisa fazer sentido sozinho, sem depender de interpretar o headline junto: quem lê em menos de 1 segundo já entende do que se trata. Nunca corte uma frase pela metade só pra caber no limite de caracteres.',
 }
 
+// Achado real do usuário: fundo de foto + texto flutuante lê como muito mais
+// sofisticado que cartão tipográfico em fundo liso (comparando com o
+// carrossel do corretor Marcelo, todo em fotos reais do imóvel) — o cartão
+// liso devia virar exceção rara, não o padrão. Esse campo, igual ao de
+// `photo`, é resolvido automaticamente (Galeria/pasta de referência da
+// publicação/Pexels, nessa ordem) — o usuário não precisa anexar nada à mão
+// pros layouts tipográficos ganharem fundo de foto.
+const FOTO_FUNDO: CampoSlide = { nome: 'photoDataUri', label: 'Foto de fundo (opcional)', tipo: 'foto' }
+
 export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
   logocover: [{ nome: 'tagline', label: 'Tagline sob a logo', tipo: 'texto', maxLength: 60 }],
   cover: [
-    KICKER,
+    FOTO_FUNDO,
     {
       nome: 'headline',
       label: 'Frase que para o scroll',
@@ -120,7 +131,7 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
   ],
   statement: [{ nome: 'headline', label: 'Frase', tipo: 'texto-longo', maxLength: 80 }],
   word: [
-    KICKER,
+    FOTO_FUNDO,
     {
       nome: 'headline',
       label: '3 a 6 palavras (use <em>uma</em> pra destacar)',
@@ -131,17 +142,9 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
     },
     HINT,
   ],
-  bottom: [KICKER, { nome: 'headline', label: 'Frase de respiro, mais longa', tipo: 'texto-longo', maxLength: 100 }],
+  bottom: [FOTO_FUNDO, { nome: 'headline', label: 'Frase de respiro, mais longa', tipo: 'texto-longo', maxLength: 100 }],
   split: [
-    KICKER,
-    {
-      nome: 'num',
-      label: 'Número/passo',
-      tipo: 'numero',
-      maxLength: 3,
-      direcaoIA:
-        'Um marcador BEM CURTO (máx. 3 caracteres) que ancora esse passo da cena — um horário arredondado ("22h", não "22h04"), uma contagem, uma métrica real. Não um índice genérico como "1".',
-    },
+    FOTO_FUNDO,
     {
       nome: 'title',
       label: 'Título',
@@ -153,19 +156,12 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
       nome: 'text',
       label: 'Explicação',
       tipo: 'texto-longo',
-      maxLength: 72,
+      maxLength: 110,
       direcaoIA: 'Uma frase grounded e específica que continua a cena do slide anterior — não um conselho ou benefício genérico.',
     },
   ],
   item: [
-    KICKER,
-    {
-      nome: 'num',
-      label: 'Número',
-      tipo: 'numero',
-      maxLength: 3,
-      direcaoIA: 'Número do passo/ideia, na ordem certa da explicação — bem curto (ex.: "1", "2").',
-    },
+    FOTO_FUNDO,
     {
       nome: 'title',
       label: 'Título',
@@ -177,12 +173,12 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
       nome: 'text',
       label: 'Explicação',
       tipo: 'texto-longo',
-      maxLength: 72,
+      maxLength: 110,
       direcaoIA: 'Explicação concreta dessa ideia, sem jargão sem contexto — uma frase que um leigo no assunto entenderia de primeira.',
     },
   ],
   list: [
-    KICKER,
+    FOTO_FUNDO,
     { nome: 'headline', label: 'Título da lista', tipo: 'texto', maxLength: 52 },
     {
       nome: 'items',
@@ -193,7 +189,6 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
   ],
   photo: [
     { nome: 'photoDataUri', label: 'Foto', tipo: 'foto' },
-    KICKER,
     {
       nome: 'headline',
       label: 'Frase sobre a foto',
@@ -205,7 +200,7 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
     HINT,
   ],
   cta: [
-    KICKER,
+    FOTO_FUNDO,
     { nome: 'headline', label: 'O convite', tipo: 'texto-longo', maxLength: 90 },
     // Nunca vem da IA (ver MetodoConversao em conversao.ts) — resolvido no
     // servidor a partir do Perfil (telefone, url do site) ou de um texto fixo
@@ -228,6 +223,24 @@ export const CAMPOS_POR_LAYOUT: Record<Layout, CampoSlide[]> = {
       direcaoIA:
         'Texto de um card de uma thread explicativa — precisa ser uma ideia completa e desenvolvida (uma ou duas frases de verdade, com contexto e profundidade). NUNCA uma palavra solta, um número isolado ou uma frase de efeito de 2-3 palavras: esse formato existe pra reter quem já segue o perfil com conteúdo que vale a pena ler, não frases soltas de impacto. Continue a narrativa do card anterior, sem repetir o gancho do primeiro.',
     },
+  ],
+  enquete: [
+    FOTO_FUNDO,
+    {
+      nome: 'headline',
+      label: 'Pergunta da enquete',
+      tipo: 'texto-longo',
+      maxLength: 90,
+      direcaoIA:
+        'Uma pergunta clara, ligada à rotina ou necessidade real do público, fácil de responder num toque — nunca genérica. Nada de duas perguntas juntas.',
+    },
+    {
+      nome: 'items',
+      label: 'Opções da enquete (2)',
+      tipo: 'lista',
+      direcaoIA: 'Exatamente 2 opções curtas (poucas palavras cada), fáceis de tocar no sticker de enquete do Instagram.',
+    },
+    { nome: 'hint', label: 'Nota/instrução (opcional)', tipo: 'texto', maxLength: 60, opcional: true },
   ],
   grafico: [
     {

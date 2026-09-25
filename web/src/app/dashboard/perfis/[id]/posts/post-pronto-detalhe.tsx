@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarClock, ChevronLeft, ChevronRight, Copy, Download, Loader2, X } from 'lucide-react'
+import { CalendarClock, Check, ChevronLeft, ChevronRight, Copy, Download, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Post } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
@@ -131,7 +131,24 @@ export function PostProntoDetalhe({
   const [post, setPost] = useState<Post>(postInicial)
   const [agendamentoInput, setAgendamentoInput] = useState(postInicial.agendadoPara ? paraInputLocal(postInicial.agendadoPara) : '')
   const [agendando, setAgendando] = useState(false)
+  const [aprovando, setAprovando] = useState(false)
   const [redeAtiva, setRedeAtiva] = useState<RedeSocial | null>(null)
+
+  async function aprovar() {
+    setAprovando(true)
+    try {
+      const res = await fetch(`/api/posts/${post.id}/aprovar`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.erro || 'falha ao aprovar')
+        return
+      }
+      setPost((atual) => ({ ...atual, aprovadoEm: data.aprovadoEm, aprovadaVersao: data.aprovadaVersao }))
+      toast.success('Post aprovado.')
+    } finally {
+      setAprovando(false)
+    }
+  }
 
   async function agendar(agendadoPara: string | null) {
     setAgendando(true)
@@ -180,6 +197,26 @@ export function PostProntoDetalhe({
           <Badge className="gap-1 border-transparent bg-emerald-600/15 text-emerald-700 dark:text-emerald-400">
             {STATUS_LABEL[post.status]}
           </Badge>
+          {/* Check final explícito (doc §12) — aprovadoEm !== null com
+              aprovadaVersao !== versao significa "aprovado, mas editado
+              depois" (nunca rejeitado; ausência de check também não é
+              rejeição, só "não informado ainda"). */}
+          {post.aprovadoEm && post.aprovadaVersao === post.versao ? (
+            <Badge variant="outline" className="gap-1 border-emerald-600/30 text-emerald-700 dark:text-emerald-400">
+              <Check className="size-3" />
+              Aprovado (v{post.aprovadaVersao})
+            </Badge>
+          ) : post.aprovadoEm ? (
+            <Badge variant="outline" className="gap-1 border-amber-600/30 text-amber-700 dark:text-amber-400">
+              Editado após aprovação (v{post.aprovadaVersao} → v{post.versao})
+            </Badge>
+          ) : null}
+          {(!post.aprovadoEm || post.aprovadaVersao !== post.versao) && (
+            <Button size="sm" variant="outline" disabled={aprovando} onClick={aprovar}>
+              {aprovando ? <Loader2 className="animate-spin" /> : <Check />}
+              Aprovar
+            </Button>
+          )}
           <Button size="sm" variant="outline" asChild>
             <a href={`/api/posts/${post.id}/download`} download>
               <Download />

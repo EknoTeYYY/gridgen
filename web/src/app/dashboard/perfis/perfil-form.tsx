@@ -127,7 +127,8 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex max-w-2xl flex-col gap-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>Informações básicas</CardTitle>
@@ -285,6 +286,7 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {erro && <p className="text-sm text-destructive">{erro}</p>}
 

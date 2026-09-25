@@ -13,12 +13,11 @@ enum PerfilTipo {
 }
 
 enum PostTipo {
-  ancora
-  dor
-  prova
-  didatico
-  dado
-  oferta
+  educativo
+  conexao
+  prova_social
+  produtos_servicos
+  interativo
 }
 
 enum PostFormato {
@@ -173,6 +172,16 @@ model Perfil {
   linkedinUrl     String?
   tiktokUrl       String?
 
+  // Canal de conversão real do negócio (doc editorial: "coletar canal no
+  // diagnóstico e recuperar destino confirmado pra CTA executável") —
+  // capturado uma vez no chat de contexto e reaproveitado em todo post
+  // gerado depois, em vez de assumir um canal genérico por tipo de conteúdo.
+  // Valor livre (não enum) — um dos `MetodoConversao` que representa um
+  // canal real (ligacao/whatsapp/whatsapp_bio/lp/cardapio_bio); o destino em
+  // si continua vivendo em `telefoneContato`/`url`, nunca duplicado aqui.
+  canalConversaoTipo        String?
+  canalConversaoConfirmado  Boolean @default(false)
+
   conta               Conta               @relation(fields: [contaId], references: [id], onDelete: Cascade)
   contexto            ContextoMarkdown?
   mensagensContexto   MensagemContexto[]
@@ -180,6 +189,7 @@ model Perfil {
   datasPersonalizadas DataPersonalizada[]
   galeriaItens        GaleriaItem[]
   galeriaPastas       GaleriaPasta[]
+  propostasCalendario PropostaCalendario[]
 
   @@unique([contaId, slug])
   @@index([contaId])
@@ -230,7 +240,7 @@ model DataPersonalizada {
   nome         String
   mes          Int
   dia          Int
-  tipoSugerido PostTipo @default(oferta)
+  tipoSugerido PostTipo @default(produtos_servicos)
   ativa        Boolean  @default(true)
   createdAt    DateTime @default(now())
 
@@ -238,6 +248,81 @@ model DataPersonalizada {
 
   @@index([perfilId])
   @@map("datas_personalizadas")
+}
+
+// Proposta de calendário do mês inteiro (doc editorial §6) — diferente da
+// geração reativa data a data que já existia (CALENDARIO_SAZONAL +
+// DataPersonalizada, disparada N dias antes de cada ocorrência): aqui a IA
+// propõe o mês INTEIRO de uma vez (frequência com justificativa + N pautas),
+// e nenhuma pauta gera post de verdade até uma aprovação EXPLÍCITA cobrir a
+// proposta inteira ("não iniciar produção final por aprovação parcial do
+// calendário ou silêncio"). Uma vez aprovada, cada pauta ainda passa pelo
+// MESMO mecanismo reativo de sempre (N dias antes, ver calendario.service.ts)
+// — só a origem dos candidatos muda, não o motor de geração.
+model PropostaCalendario {
+  id                      String   @id @default(uuid())
+  perfilId                String
+  // Primeiro dia do mês de referência (ex.: 2026-11-01), sempre 00:00 UTC —
+  // só serve pra identificar QUAL mês, nunca uma data de publicação real.
+  mesReferencia           DateTime
+  // "rascunho" (ainda não aprovado, nenhuma pauta gera post) | "aprovado"
+  // (cobre a proposta inteira, ver PautaCalendario pra status por pauta).
+  status                  String   @default("rascunho")
+  frequenciaJustificativa String
+  totalPautas             Int
+  createdAt               DateTime @default(now())
+  aprovadoEm              DateTime?
+
+  perfil Perfil            @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  pautas PautaCalendario[]
+
+  @@unique([perfilId, mesReferencia])
+  @@index([perfilId])
+  @@map("propostas_calendario")
+}
+
+// Uma pauta = um item do mês proposto (doc §6, "apresentação do calendário")
+// — texto/planejamento, NUNCA o post renderizado (isso só nasce quando o
+// mecanismo reativo gera de verdade, perto da data, e preenche `postId`).
+model PautaCalendario {
+  id               String    @id @default(uuid())
+  propostaId       String
+  assunto          String
+  abordagem        String
+  publico          String
+  objetivo         String
+  motivoEscolha    String
+  tipo             PostTipo
+  formato          PostFormato @default(feed)
+  dataHorario      DateTime
+  direcaoVisual    String
+  acaoDesejada     String
+  // Nunca inventar pesquisa que não existe (doc §6): registra de onde essa
+  // pauta veio de verdade — "sazonalidade curada: Black Friday", "assunto
+  // recorrente do contexto de marca", "hipótese editorial (sem pesquisa em
+  // tempo real disponível)".
+  origemInformacao String
+  dependencias     String?
+  alternativa      String?
+  // Nome da ocasião/campanha sazonal, quando essa pauta pertence a uma —
+  // permite contar "ocasiões" separado de "peças" (uma ocasião pode ter
+  // várias pautas). Nulo pra pauta avulsa/recorrente.
+  ocasiao          String?
+  // Preenchido só quando o mecanismo reativo já gerou o post de verdade pra
+  // esta pauta (aponta pro Post real — conteúdo/render/aprovação seguem o
+  // fluxo de sempre a partir daí, esta linha não duplica nada disso).
+  postId           String?
+  // Troca pós-aprovação exige motivo (doc §6: "proposta de troca com motivo
+  // e impacto") — preenchido só quando a pauta é editada DEPOIS que a
+  // proposta já foi aprovada; edição antes da aprovação não precisa.
+  motivoUltimaTroca String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  proposta PropostaCalendario @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+
+  @@index([propostaId])
+  @@map("pautas_calendario")
 }
 
 model ContextoMarkdown {
@@ -299,17 +384,46 @@ model Post {
   // Marca quando o e-mail de aviso ("hora de publicar") foi enviado — evita
   // reenviar a cada varredura do scheduler. Null = ainda não enviado.
   avisoAgendamentoEnviadoEm DateTime?
+  // Modelo de entrega/aprovação do doc editorial (§12): "download sem check
+  // não vira aprovação; edição gera versão nova sem herdar check". `versao`
+  // sobe só quando um conteúdo já `pronto` é editado de novo (invalidando o
+  // que já tinha sido produzido — ver PATCH /posts/:id); `aprovadoEm`/
+  // `aprovadaVersao` registram o check final EXPLÍCITO de uma versão
+  // específica, sem inferir aprovação de download nem de geração. Ausência
+  // de check (`aprovadoEm` nulo, ou `aprovadaVersao !== versao`) significa
+  // "não informado", nunca "rejeitado" — nunca usado pra bloquear nada.
+  versao       Int       @default(1)
+  aprovadoEm   DateTime?
+  aprovadaVersao Int?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  perfil     Perfil         @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  perfil     Perfil               @relation(fields: [perfilId], references: [id], onDelete: Cascade)
   renderJobs RenderJob[]
   saidas     SaidaEntrega[]
+  downloads  PostDownloadEvento[]
 
   @@unique([perfilId, slug])
   @@unique([perfilId, campanhaSlug, campanhaData])
   @@index([perfilId])
   @@map("posts")
+}
+
+// Evento observável de download (doc §12) — log append-only, não um
+// contador só: associa o download à versão baixada e, quando aplicável, à
+// rede específica (nulo = post principal). Nunca infere aprovação nem
+// publicação a partir disto.
+model PostDownloadEvento {
+  id        String      @id @default(uuid())
+  postId    String
+  canal     SaidaCanal?
+  versao    Int
+  createdAt DateTime    @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_download_eventos")
 }
 
 model RenderJob {

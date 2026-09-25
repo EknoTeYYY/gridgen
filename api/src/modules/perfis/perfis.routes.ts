@@ -17,6 +17,19 @@ export default async function perfisRoutes(app: FastifyInstance) {
     }
 
     const perfil = await app.prisma.perfil.create({ data: { contaId, slug, ...body } })
+
+    // Doc editorial: "cada empresa deve ter Prova Social e Produtos já
+    // criadas na Galeria" — cria as pastas vazias na hora, em vez de deixá-
+    // las só como sugestão visual que pode nunca virar pasta de verdade
+    // (mesmo endpoint/semântica de `POST /galeria/pastas`, direto no banco).
+    await app.prisma.galeriaPasta.createMany({
+      data: [
+        { perfilId: perfil.id, nome: 'Prova Social' },
+        { perfilId: perfil.id, nome: 'Produtos' },
+      ],
+      skipDuplicates: true,
+    })
+
     return reply.code(201).send(perfil)
   })
 

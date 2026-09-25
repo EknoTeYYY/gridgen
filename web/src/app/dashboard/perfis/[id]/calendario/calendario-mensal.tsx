@@ -126,7 +126,7 @@ export function CalendarioMensal({
   const [aberto, setAberto] = useState(false)
   const [nome, setNome] = useState('')
   const [dia, setDia] = useState('1')
-  const [tipoSugerido, setTipoSugerido] = useState<TipoConteudo>('oferta')
+  const [tipoSugerido, setTipoSugerido] = useState<TipoConteudo>('produtos_servicos')
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, startSalvar] = useTransition()
   const [excluindoId, setExcluindoId] = useState<string | null>(null)

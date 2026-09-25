@@ -62,8 +62,21 @@ export default async function postsRoutes(app: FastifyInstance) {
     })
     if (!post) return reply.code(404).send({ erro: 'post não encontrado' })
 
+    // Último download de QUALQUER artefato deste post (principal ou por
+    // rede) — só um sinal informativo pra tela, nunca usado pra bloquear
+    // nem inferir aprovação/publicação (doc §12).
+    const ultimoDownload = await app.prisma.postDownloadEvento.findFirst({
+      where: { postId: id },
+      orderBy: { createdAt: 'desc' },
+    })
+
     const arquivos = post.status === 'pronto' ? arquivosEsperados(slidesDoJson(post.slides).length) : []
-    return reply.send({ ...post, arquivos, saidas: post.saidas.map(comArquivos) })
+    return reply.send({
+      ...post,
+      arquivos,
+      saidas: post.saidas.map(comArquivos),
+      ultimoDownloadEm: ultimoDownload?.createdAt ?? null,
+    })
   })
 
   app.patch('/posts/:id', async (request, reply) => {
@@ -80,14 +93,41 @@ export default async function postsRoutes(app: FastifyInstance) {
     }
 
     // Conteúdo mudou — o render anterior (se houver) ficou desatualizado.
+    // Doc editorial: "edição gera versão nova sem herdar check" — só sobe a
+    // versão quando havia de fato uma versão PRONTA sendo substituída (editar
+    // um rascunho ainda não renderizado não é uma "nova versão" de nada).
+    // `aprovadoEm`/`aprovadaVersao` nunca são apagados aqui: continuam sendo
+    // o histórico real de quando/qual versão foi aprovada, mesmo depois de
+    // uma edição — a UI compara `versao` com `aprovadaVersao` pra saber se o
+    // que existe hoje já foi aprovado ou não.
     const dados: Prisma.PostUpdateInput = {
       ...(body.formato && { formato: body.formato }),
       ...(body.caption !== undefined && { caption: body.caption }),
       ...(body.hashtags !== undefined && { hashtags: body.hashtags }),
       ...(body.slides && { slides: slidesParaJson(body.slides as Slide[]) }),
       status: 'rascunho',
+      ...(existente.status === 'pronto' && { versao: { increment: 1 } }),
     }
     const post = await app.prisma.post.update({ where: { id }, data: dados })
+    return reply.send(post)
+  })
+
+  // Check final explícito (doc §12) — nunca inferido de download ou geração.
+  // Ausência de aprovação não é rejeição, só "não informado ainda".
+  app.post('/posts/:id/aprovar', async (request, reply) => {
+    const contaId = request.usuarioAtual!.contaId
+    const { id } = request.params as { id: string }
+
+    const existente = await app.prisma.post.findFirst({ where: { id, perfil: { contaId } } })
+    if (!existente) return reply.code(404).send({ erro: 'post não encontrado' })
+    if (existente.status !== 'pronto') {
+      return reply.code(400).send({ erro: 'gere as imagens do post antes de aprovar' })
+    }
+
+    const post = await app.prisma.post.update({
+      where: { id },
+      data: { aprovadoEm: new Date(), aprovadaVersao: existente.versao },
+    })
     return reply.send(post)
   })
 
@@ -267,6 +307,11 @@ export default async function postsRoutes(app: FastifyInstance) {
     const pastaPost = path.join(env.OUTPUT_DIR, post.id)
     if (!existsSync(pastaPost)) return reply.code(404).send({ erro: 'arquivos não encontrados' })
 
+    // Evento técnico observável (doc §12) — registrado ANTES de servir o
+    // arquivo: o download em si é o evento que importa, não uma confirmação
+    // de que o navegador salvou com sucesso (isso não é observável daqui).
+    await app.prisma.postDownloadEvento.create({ data: { postId: post.id, versao: post.versao } })
+
     const archive = archiver('zip', { zlib: { level: 9 } })
     archive.on('error', (err) => request.log.error(err, 'falha ao montar o zip de download do post'))
     archive.directory(pastaPost, false)
@@ -344,6 +389,8 @@ export default async function postsRoutes(app: FastifyInstance) {
 
     const pastaCanal = path.join(env.OUTPUT_DIR, post.id, canal)
     if (!existsSync(pastaCanal)) return reply.code(404).send({ erro: 'arquivos não encontrados' })
+
+    await app.prisma.postDownloadEvento.create({ data: { postId: post.id, canal, versao: post.versao } })
 
     const archive = archiver('zip', { zlib: { level: 9 } })
     archive.on('error', (err) => request.log.error(err, 'falha ao montar o zip de download por rede'))

@@ -54,12 +54,19 @@ export function RedesSociaisIcons({
   saidas,
   className,
   tamanho = 'size-3',
+  incluirInstagram = false,
 }: {
   saidas: SaidaEntrega[] | undefined
   className?: string
   tamanho?: string
+  // Instagram nunca tem `SaidaEntrega` própria (ver `redesParaAbas`) — por
+  // padrão essa lista só mostra redes extras marcadas, pra não poluir o
+  // calendário/outros usos que já deixam o Instagram implícito. Quem precisa
+  // deixar explícito que o post é (também) do Instagram, mesmo sem nenhuma
+  // rede extra marcada, liga esse prop.
+  incluirInstagram?: boolean
 }) {
-  const redes = redesDoPost(saidas)
+  const redes = incluirInstagram ? redesParaAbas(saidas) : redesDoPost(saidas)
   if (redes.length === 0) return null
 
   return (

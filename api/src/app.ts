@@ -9,6 +9,7 @@ import schedulerPlugin from './plugins/scheduler.js'
 import adminRoutes from './modules/admin/admin.routes.js'
 import authRoutes from './modules/auth/auth.routes.js'
 import calendarioRoutes from './modules/calendario/calendario.routes.js'
+import calendarioMensalRoutes from './modules/calendario-mensal/calendario-mensal.routes.js'
 import contextoRoutes from './modules/contexto/contexto.routes.js'
 import galeriaRoutes from './modules/galeria/galeria.routes.js'
 import geracaoRoutes from './modules/geracao/geracao.routes.js'
@@ -57,6 +58,7 @@ export async function buildApp() {
   await app.register(geracaoRoutes)
   await app.register(imagensRoutes)
   await app.register(calendarioRoutes)
+  await app.register(calendarioMensalRoutes)
   await app.register(galeriaRoutes)
   await app.register(leadsRoutes)
 

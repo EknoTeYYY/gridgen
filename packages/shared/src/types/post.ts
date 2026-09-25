@@ -11,6 +11,7 @@ export type Layout =
   | 'cta'
   | 'tweet'
   | 'grafico'
+  | 'enquete'
 
 export type Tema = 'ink' | 'brand' | 'light' | 'paper'
 
@@ -42,7 +43,16 @@ export interface ItemGrafico {
   destaque?: boolean
 }
 
-export type TipoConteudo = 'ancora' | 'dor' | 'prova' | 'didatico' | 'dado' | 'oferta'
+// Taxonomia editorial (entrega Ellen/marketing, GRIDGEN-ENTREGA-PARA-ERICK.md
+// §3 e §7) — substitui os 6 tipos antigos (ancora/dor/prova/didatico/dado/
+// oferta). Migração de dados: ver a migration do PostTipo em
+// api/prisma/migrations, que remapeia posts existentes pro tipo novo mais
+// próximo em vez de descartar (didatico→educativo, dado→educativo,
+// dor→conexao, ancora→conexao, oferta→produtos_servicos, prova→
+// produtos_servicos — nunca prova_social, cuja receita nova, 1 slide com
+// print de depoimento real, é estruturalmente incompatível com o carrossel
+// de portfólio que "prova" era).
+export type TipoConteudo = 'educativo' | 'conexao' | 'prova_social' | 'produtos_servicos' | 'interativo'
 
 export type Formato = 'feed' | 'square' | 'story'
 
@@ -56,12 +66,10 @@ export type PostStatus = 'rascunho' | 'gerando' | 'pronto' | 'erro'
 export interface Slide {
   layout: Layout
   theme?: Tema
-  kicker?: string
   hint?: string
   headline?: string
   title?: string
   text?: string
-  num?: string | number
   items?: string[]
   logoTop?: boolean
   tagline?: string

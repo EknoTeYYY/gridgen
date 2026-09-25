@@ -14,11 +14,13 @@ export const VARIANTES_CAPA: Partial<Record<Layout, number>> = {
   photo: 5,
 }
 
+// `split`/`item` saíram daqui: o motor de render convergiu os dois pra uma
+// composição única (título + texto, sem número em tela) depois que o usuário
+// rejeitou toda tentativa de marcador numérico — sem número, não sobra
+// diferença visual nenhuma pra sortear entre variantes.
 export const VARIANTES_INTERNA: Partial<Record<Layout, number>> = {
   photo: 4,
-  split: 4,
   word: 4,
-  item: 4,
   list: 4,
   bottom: 4,
   cta: 4,

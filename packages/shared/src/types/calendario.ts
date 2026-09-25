@@ -34,31 +34,31 @@ function ultimoDiaDaSemana(ano: number, mes: number, diaSemana: number): number 
 // entre todos os Perfis. Datas móveis (2º domingo, última sexta) calculadas
 // por ano; Páscoa (base lunar) fica de fora do v1 por complexidade.
 export const CALENDARIO_SAZONAL: DataComemorativa[] = [
-  { slug: 'ano-novo', nome: 'Ano Novo', tipoSugerido: 'ancora', calcular: fixa(1, 1) },
-  { slug: 'dia-da-mulher', nome: 'Dia Internacional da Mulher', tipoSugerido: 'oferta', calcular: fixa(3, 8) },
+  { slug: 'ano-novo', nome: 'Ano Novo', tipoSugerido: 'conexao', calcular: fixa(1, 1) },
+  { slug: 'dia-da-mulher', nome: 'Dia Internacional da Mulher', tipoSugerido: 'produtos_servicos', calcular: fixa(3, 8) },
   {
     slug: 'dia-das-maes',
     nome: 'Dia das Mães',
-    tipoSugerido: 'oferta',
+    tipoSugerido: 'produtos_servicos',
     calcular: (ano) => ({ mes: 5, dia: nesimoDiaDaSemana(ano, 5, 0, 2) }),
   },
-  { slug: 'dia-dos-namorados', nome: 'Dia dos Namorados', tipoSugerido: 'oferta', calcular: fixa(6, 12) },
+  { slug: 'dia-dos-namorados', nome: 'Dia dos Namorados', tipoSugerido: 'produtos_servicos', calcular: fixa(6, 12) },
   {
     slug: 'dia-dos-pais',
     nome: 'Dia dos Pais',
-    tipoSugerido: 'oferta',
+    tipoSugerido: 'produtos_servicos',
     calcular: (ano) => ({ mes: 8, dia: nesimoDiaDaSemana(ano, 8, 0, 2) }),
   },
-  { slug: 'dia-do-cliente', nome: 'Dia do Cliente', tipoSugerido: 'prova', calcular: fixa(9, 15) },
-  { slug: 'dia-das-criancas', nome: 'Dia das Crianças', tipoSugerido: 'oferta', calcular: fixa(10, 12) },
-  { slug: 'dia-do-professor', nome: 'Dia do Professor', tipoSugerido: 'prova', calcular: fixa(10, 15) },
+  { slug: 'dia-do-cliente', nome: 'Dia do Cliente', tipoSugerido: 'prova_social', calcular: fixa(9, 15) },
+  { slug: 'dia-das-criancas', nome: 'Dia das Crianças', tipoSugerido: 'produtos_servicos', calcular: fixa(10, 12) },
+  { slug: 'dia-do-professor', nome: 'Dia do Professor', tipoSugerido: 'prova_social', calcular: fixa(10, 15) },
   {
     slug: 'black-friday',
     nome: 'Black Friday',
-    tipoSugerido: 'oferta',
+    tipoSugerido: 'produtos_servicos',
     calcular: (ano) => ({ mes: 11, dia: ultimoDiaDaSemana(ano, 11, 5) }),
   },
-  { slug: 'natal', nome: 'Natal', tipoSugerido: 'oferta', calcular: fixa(12, 25) },
+  { slug: 'natal', nome: 'Natal', tipoSugerido: 'produtos_servicos', calcular: fixa(12, 25) },
 ]
 
 function inicioDoDiaUTC(data: Date): Date {
@@ -81,4 +81,15 @@ export function proximaOcorrencia(calcular: (ano: number) => { mes: number; dia:
 export function diferencaEmDias(hoje: Date, data: Date): number {
   const MS_POR_DIA = 24 * 60 * 60 * 1000
   return Math.round((inicioDoDiaUTC(data).getTime() - inicioDoDiaUTC(hoje).getTime()) / MS_POR_DIA)
+}
+
+// Diferente de `proximaOcorrencia` (a próxima a partir de hoje, pro
+// mecanismo reativo data-a-data) — usado pela proposta de calendário mensal
+// (§6), que precisa saber quais datas comemorativas caem DENTRO de um mês
+// específico (não necessariamente o próximo), pra oferecer como insumo de
+// pesquisa de sazonalidade. Retorna o dia do mês, ou null se essa data
+// comemorativa não cair nesse mês/ano.
+export function diaSeOcorreNoMes(calcular: (ano: number) => { mes: number; dia: number }, ano: number, mes: number): number | null {
+  const ocorrencia = calcular(ano)
+  return ocorrencia.mes === mes ? ocorrencia.dia : null
 }

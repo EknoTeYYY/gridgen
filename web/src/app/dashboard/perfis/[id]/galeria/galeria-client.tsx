@@ -23,11 +23,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GaleriaAssetField } from '@/components/form/galeria-asset-field'
+import { InfoTooltip } from '@/components/form/info-tooltip'
 import { atualizarAssetMarca, type CampoAssetMarca } from '../../actions'
 import { criarItemGaleria, criarPastaGaleria, excluirItemGaleria, renomearItemGaleria } from './actions'
 
 const PASTA_LOGO_MARCA = 'Logo'
-const PASTAS_SUGERIDAS = [PASTA_LOGO_MARCA, 'Referências', 'Produtos', 'Eventos']
+// "Prova Social" e "Produtos" já nascem criadas de verdade (não só
+// sugeridas) pra Perfil novo — ver `POST /perfis` na api. Seguem aparecendo
+// aqui também, cobrindo Perfis criados antes dessa mudança.
+const PASTAS_SUGERIDAS = [PASTA_LOGO_MARCA, 'Prova Social', 'Produtos', 'Referências', 'Eventos']
+
+// Orientação do doc editorial (§11): onde colocar cada tipo de material,
+// pra não exigir que o cliente organize o acervo inteiro sozinho.
+const DICA_PASTA: Record<string, string> = {
+  'Prova Social': 'Prints de feedback real (WhatsApp, Instagram, Google) entram aqui — é o material do tipo Prova Social.',
+  Produtos: 'Fotos dos produtos/itens de verdade entram aqui — usadas nos tipos Produtos e Serviços.',
+}
 
 function converterParaDataUri(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -445,7 +456,14 @@ export function GaleriaClient({
                     )}
                   </div>
                   <CardContent className="flex items-center justify-between gap-2 p-3">
-                    <p className="truncate font-medium">{pasta.nome}</p>
+                    <span className="flex min-w-0 items-center gap-1">
+                      <p className="truncate font-medium">{pasta.nome}</p>
+                      {DICA_PASTA[pasta.nome] && (
+                        <span onClick={(e) => e.stopPropagation()}>
+                          <InfoTooltip texto={DICA_PASTA[pasta.nome]} />
+                        </span>
+                      )}
+                    </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{pasta.itens.length}</span>
                   </CardContent>
                 </Card>

@@ -1,5 +1,14 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
-import { receitaDe, TIPOS, type BrandKit, type MetodoConversao, type RenderJobPayload, type Slide, type TipoConteudo } from '@gridgen/shared'
+import {
+  METODO_CONVERSAO_PADRAO,
+  receitaDe,
+  TIPOS,
+  type BrandKit,
+  type MetodoConversao,
+  type RenderJobPayload,
+  type Slide,
+  type TipoConteudo,
+} from '@gridgen/shared'
 
 // Prisma tipa a coluna Json como JsonValue (leitura) / InputJsonValue
 // (escrita) — nenhum dos dois casa direto com Slide[], então o cast passa
@@ -38,13 +47,17 @@ export async function proximoSlugDePost(
   return slug
 }
 
-// A consistência visual do tipo de conteúdo depende de seguir a receita à
-// risca (mesmo princípio do render.mjs original — só que aqui vira validação
-// de verdade, não um aviso que não bloqueia, já que agora o conteúdo entra
+// A consistência visual do tipo de conteúdo depende de seguir a receita
+// (mesmo princípio do render.mjs original — só que aqui vira validação de
+// verdade, não um aviso que não bloqueia, já que agora o conteúdo entra
 // estruturado por formulário, não editado à mão num JSON). No estilo "tweet"
 // a CONTAGEM de slides ainda vem da receita do tipo (é ela que decide quantas
 // telas a narrativa precisa), mas a sequência de layouts não se aplica — todo
-// slide é `tweet`, não `photo/split/word/...`.
+// slide é `tweet`, não `photo/split/word/...`. No estilo "padrao" a contagem
+// é flexível dentro de `minTelas`/`maxTelas` (doc editorial: "extensão
+// conforme narrativa, até dez telas") — não precisa mais bater exatamente
+// com `receita.receita.length`, só respeitar a faixa, abrir com a capa do
+// tipo, e usar só layouts já previstos na receita.
 export function validarSlidesContraReceita(tipo: TipoConteudo, slides: Slide[], estiloVisual = 'padrao'): string | null {
   // Peça estática única, independente da receita do tipo (mesmo espírito do
   // "tweet", só que a contagem de slides também não se aplica aqui — sempre
@@ -56,17 +69,24 @@ export function validarSlidesContraReceita(tipo: TipoConteudo, slides: Slide[], 
     return null
   }
   const receita = receitaDe(tipo)
-  if (slides.length !== receita.receita.length) {
-    return `a receita de "${tipo}" espera ${receita.receita.length} slides, vieram ${slides.length}`
-  }
   if (estiloVisual === 'tweet') {
+    if (slides.length !== receita.receita.length) {
+      return `a receita de "${tipo}" espera ${receita.receita.length} slides, vieram ${slides.length}`
+    }
     const fora = slides.find((s) => s.layout !== 'tweet')
     if (fora) return `no estilo "tweet" todo slide deveria ser do layout "tweet", veio "${fora.layout}"`
     return null
   }
+  if (slides.length < receita.minTelas || slides.length > receita.maxTelas) {
+    return `o tipo "${tipo}" aceita entre ${receita.minTelas} e ${receita.maxTelas} slides, vieram ${slides.length}`
+  }
+  if (slides[0]?.layout !== receita.capa.layout) {
+    return `o primeiro slide deveria ser a capa ("${receita.capa.layout}"), veio "${slides[0]?.layout}"`
+  }
+  const layoutsPermitidos = new Set(receita.receita)
   for (let i = 0; i < slides.length; i++) {
-    if (slides[i].layout !== receita.receita[i]) {
-      return `slide ${i + 1} deveria ser do layout "${receita.receita[i]}", veio "${slides[i].layout}"`
+    if (!layoutsPermitidos.has(slides[i].layout)) {
+      return `slide ${i + 1}: layout "${slides[i].layout}" não é usado pelo tipo "${tipo}"`
     }
   }
   return null
@@ -102,18 +122,37 @@ export function extrairHandleInstagram(valor: string | null): string | null {
 // Destino mostrado no slide final de CTA — nunca inventado pela IA (ver
 // `DIRECAO_CONVITE_POR_METODO`/`schemaParaLayout`). Resolvido aqui, a partir
 // de dado real do Perfil, pros métodos que precisam de um; "comentario"
-// nunca precisou de nada, "link_bio" é sempre o mesmo texto fixo (não
-// depende do Perfil ter link nenhum configurado). Perfil sem o dado
-// necessário (telefone/site vazio) simplesmente devolve string vazia — o
-// slide sai só com o convite, sem destino, sem bloquear a geração.
+// nunca precisou de nada, "link_bio"/"whatsapp_bio"/"cardapio_bio" são
+// sempre o mesmo texto fixo (não dependem do Perfil ter link configurado —
+// o destino de verdade é o link da própria bio do Instagram, fora do
+// controle da ferramenta). Perfil sem o dado necessário (telefone/site
+// vazio) simplesmente devolve string vazia — o slide sai só com o convite,
+// sem destino, sem bloquear a geração.
 export function textoConversao(
   metodo: MetodoConversao,
   perfil: { telefoneContato: string | null; url: string | null },
 ): string {
-  if (metodo === 'whatsapp') return perfil.telefoneContato ?? ''
+  if (metodo === 'ligacao' || metodo === 'whatsapp') return perfil.telefoneContato ?? ''
   if (metodo === 'lp') return perfil.url ?? ''
-  if (metodo === 'link_bio') return 'Link na bio'
+  if (metodo === 'link_bio' || metodo === 'whatsapp_bio' || metodo === 'cardapio_bio') return 'Link na bio'
   return ''
+}
+
+// Doc editorial: "coletar canal no diagnóstico e recuperar destino
+// confirmado pra CTA executável" — uma vez que o Perfil confirma um canal
+// real (via chat de contexto), ele substitui o padrão genérico por tipo
+// (`METODO_CONVERSAO_PADRAO`) pra qualquer post gerado depois, sem precisar
+// perguntar de novo a cada post. "Conexão" fica de fora de propósito: o tipo
+// existe pra identificação/engajamento leve, nunca deveria empurrar o canal
+// de venda em toda peça (mesmo com um canal já confirmado).
+export function resolverMetodoConversaoPadrao(
+  tipo: TipoConteudo,
+  perfil: { canalConversaoTipo: string | null; canalConversaoConfirmado: boolean },
+): MetodoConversao {
+  if (tipo !== 'conexao' && perfil.canalConversaoConfirmado && perfil.canalConversaoTipo) {
+    return perfil.canalConversaoTipo as MetodoConversao
+  }
+  return METODO_CONVERSAO_PADRAO[tipo]
 }
 
 export function brandKitDoPerfil(perfil: {

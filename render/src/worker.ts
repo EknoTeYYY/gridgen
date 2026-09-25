@@ -37,7 +37,7 @@ async function processar(job: Job<RenderJobPayload>): Promise<RenderJobResult> {
       // Fontes e fotos já chegam embutidas como data URI — não há requisição de
       // rede de verdade pra esperar, então 'load' é suficiente (setContent nem
       // aceita 'networkidle0'/'networkidle2').
-      const html = pageHTML(post.slides[i], i, total, altura, padTop, padBottom, brand)
+      const html = pageHTML(post.slides[i], i, total, altura, padTop, padBottom, brand, post.tipo)
       await page.setContent(html, { waitUntil: 'load' })
       const nome = `${String(i + 1).padStart(2, '0')}.png`
       await page.screenshot({ path: path.join(dir, nome) as `${string}.png` })

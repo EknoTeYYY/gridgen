@@ -24,6 +24,8 @@ export interface Perfil {
   instagramUrl: string | null
   linkedinUrl: string | null
   tiktokUrl: string | null
+  canalConversaoTipo: string | null
+  canalConversaoConfirmado: boolean
   createdAt: string
   updatedAt: string
 }
@@ -56,7 +58,7 @@ export interface SaidaEntrega {
 export interface Post {
   id: string
   perfilId: string
-  tipo: 'ancora' | 'dor' | 'prova' | 'didatico' | 'dado' | 'oferta'
+  tipo: 'educativo' | 'conexao' | 'prova_social' | 'produtos_servicos' | 'interativo'
   formato: 'feed' | 'square' | 'story'
   slug: string
   caption: string
@@ -71,11 +73,18 @@ export interface Post {
   campanhaData: string | null
   agendadoPara: string | null
   avisoAgendamentoEnviadoEm: string | null
+  // Entrega/aprovação como eventos explícitos (doc §12) — `aprovadaVersao`
+  // diferente de `versao` significa "aprovado, mas essa versão já mudou
+  // desde então", nunca uma rejeição.
+  versao: number
+  aprovadoEm: string | null
+  aprovadaVersao: number | null
   createdAt: string
   updatedAt: string
   renderJobs?: RenderJob[]
   saidas?: SaidaEntrega[]
   arquivos?: string[]
+  ultimoDownloadEm?: string | null
   perfil?: { id: string; nome: string }
 }
 
@@ -88,6 +97,44 @@ export interface DataPersonalizada {
   tipoSugerido: Post['tipo']
   ativa: boolean
   createdAt: string
+}
+
+// Proposta de calendário do mês inteiro (doc editorial §6) — diferente das
+// datas curadas/personalizadas acima: aqui a IA propõe o mês de uma vez e só
+// vira produção de verdade depois de uma aprovação explícita cobrindo tudo.
+export interface PautaCalendario {
+  id: string
+  propostaId: string
+  assunto: string
+  abordagem: string
+  publico: string
+  objetivo: string
+  motivoEscolha: string
+  tipo: Post['tipo']
+  formato: Post['formato']
+  dataHorario: string
+  direcaoVisual: string
+  acaoDesejada: string
+  origemInformacao: string
+  dependencias: string | null
+  alternativa: string | null
+  ocasiao: string | null
+  postId: string | null
+  motivoUltimaTroca: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PropostaCalendario {
+  id: string
+  perfilId: string
+  mesReferencia: string
+  status: 'rascunho' | 'aprovado'
+  frequenciaJustificativa: string
+  totalPautas: number
+  createdAt: string
+  aprovadoEm: string | null
+  pautas: PautaCalendario[]
 }
 
 export interface GaleriaItem {
@@ -121,6 +168,7 @@ export interface ContextoPerfil {
 export interface RespostaContexto {
   resposta: string
   markdown: string
+  canalConversaoConfirmado: boolean
 }
 
 export type StatusConvite = 'pendente' | 'aceito' | 'expirado' | 'revogado'

@@ -17,7 +17,12 @@ export default async function ContextoPage({ params }: { params: Promise<{ id: s
           Converse pra construir o contexto de marca que a IA usa na geração assistida de post.
         </p>
       </div>
-      <ContextoChat perfilId={perfilId} perfilNome={perfil.nome} contextoInicial={contexto} />
+      <ContextoChat
+        perfilId={perfilId}
+        perfilNome={perfil.nome}
+        contextoInicial={contexto}
+        canalConfirmadoInicial={perfil.canalConversaoConfirmado}
+      />
     </div>
   )
 }

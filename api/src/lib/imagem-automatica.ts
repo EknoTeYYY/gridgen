@@ -1,6 +1,8 @@
 import type { PrismaClient } from '@prisma/client'
 import { baixarComoDataUri, buscarFotos } from './pexels.js'
 
+const TOP_RESULTADOS_PEXELS = 8
+
 export interface ConsultaImagem {
   // Português — usada pra tentar casar com a Galeria do Perfil.
   descricao: string
@@ -35,7 +37,18 @@ export async function resolverImagemAutomatica(prisma: PrismaClient, perfilId: s
   try {
     const fotos = await buscarFotos(consulta.pexels)
     if (fotos.length === 0) return null
-    return await baixarComoDataUri(fotos[0].imagemUrl)
+    // Sempre pegar `fotos[0]` é determinístico — a mesma busca genérica
+    // (ex.: "person laptop night dark office") sempre bate na mesma foto
+    // específica, e se essa foto por acaso tiver a tela de um site de
+    // verdade visível (achado real: um resultado bem ranqueado nesse
+    // termo mostra o próprio site do Pexels aberto no notebook), todo post
+    // com aquele tema sai com a mesma marca de terceiro vazando. Sortear
+    // entre os primeiros resultados (ainda todos relevantes, já que vêm
+    // ordenados por relevância do Pexels) quebra essa repetição sem perder
+    // pertinência à busca.
+    const candidatos = fotos.slice(0, TOP_RESULTADOS_PEXELS)
+    const escolhida = candidatos[Math.floor(Math.random() * candidatos.length)]
+    return await baixarComoDataUri(escolhida.imagemUrl)
   } catch {
     return null
   }

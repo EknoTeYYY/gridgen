@@ -10,7 +10,7 @@ const API_URL = process.env.API_INTERNAL_URL || 'http://localhost:8080'
 
 export const ACCESS_TOKEN_COOKIE = 'access_token'
 export const REFRESH_TOKEN_COOKIE = 'refresh_token'
-const ACCESS_TOKEN_MAX_AGE = 60 * 15 // 15 minutos — acompanha JWT_ACCESS_TTL
+const ACCESS_TOKEN_MAX_AGE = 60 * 60 * 8 // 8 horas — acompanha JWT_ACCESS_TTL
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30 // 30 dias — acompanha REFRESH_TOKEN_TTL_DAYS
 
 export interface SessionUser {

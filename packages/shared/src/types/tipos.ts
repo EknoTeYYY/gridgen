@@ -14,7 +14,17 @@ export interface ReceitaTipo {
   quandoUsar: string
   cadencia: string
   capa: { layout: Layout; theme: Tema; full?: boolean }
+  // Sequência PADRÃO de layouts — usada como esqueleto de preview/edição
+  // manual, e como o conjunto de layouts que a geração por IA pode
+  // reaproveitar (nunca inventa um layout fora desta lista). A contagem real
+  // de um post gerado pode variar dentro de `minTelas`/`maxTelas` (doc
+  // editorial: "extensão conforme narrativa, até dez telas; oito como
+  // referência de carrossel longo") — não precisa bater com `receita.length`.
   receita: Layout[]
+  // Faixa de telas aceitável pra este tipo (contando capa e fecho). O
+  // primeiro slide sempre precisa ser `capa.layout`.
+  minTelas: number
+  maxTelas: number
   temaInterno: Tema
   tom: string
   cta: string
@@ -22,83 +32,89 @@ export interface ReceitaTipo {
   nota?: string
 }
 
+// Taxonomia de 5 tipos + Interativo, da entrega editorial da Ellen
+// (GRIDGEN-ENTREGA-PARA-ERICK.md §3, §7 e §9) — substitui os 6 tipos antigos
+// (ancora/dor/prova/didatico/dado/oferta). `receita` é a sequência PADRÃO
+// (esqueleto de preview/edição manual); a geração por IA de verdade pode
+// devolver mais ou menos telas dentro de `minTelas`/`maxTelas`, reaproveitando
+// só os layouts já listados em `receita` (nunca um layout novo) — "extensão
+// conforme narrativa, até dez telas; oito como referência de carrossel
+// longo" (doc §9). Ver `geracao.service.ts` pro mecanismo.
 export const TIPOS: Record<TipoConteudo, ReceitaTipo> = {
-  ancora: {
-    nome: 'Âncora',
-    objetivo: 'Institucional. Diz quem somos e para quem. Fica fixado no perfil.',
-    quandoUsar: 'Uma vez, fixado. Refaz só quando o posicionamento mudar.',
-    cadencia: 'fixo no perfil',
-    capa: { layout: 'logocover', theme: 'brand' },
-    receita: ['logocover', 'photo', 'bottom', 'list', 'word', 'cta'],
-    temaInterno: 'ink',
-    tom: 'Institucional sem ser corporativo. Primeira pessoa do plural. Diz o que faz, não o que é.',
-    cta: 'Convite direto de contato: quem chegou até aqui já quer conversar',
-    naGrade: 'gradiente da marca — é a âncora visual, coloque no meio da linha',
-  },
-  dor: {
-    nome: 'Dor / Provocação',
-    objetivo: 'Criar identificação imediata. É o tipo que mais gera comentário e compartilhamento.',
-    quandoUsar: 'O carro-chefe. Toda semana tem uma dor do mercado pra nomear.',
-    cadencia: '1–2× por semana',
-    capa: { layout: 'photo', theme: 'ink', full: true },
-    receita: ['photo', 'split', 'split', 'word', 'photo', 'photo', 'cta'],
-    temaInterno: 'ink',
-    tom: 'Segunda pessoa. Descreve a cena que ele vive, sem julgar. Nomeia o problema antes de vender.',
-    cta: 'Pergunta aberta na legenda (puxa comentário)',
-    naGrade: 'foto escura sangrada — contrasta com o gradiente da âncora',
-    nota: 'A narrativa em split numerado é o motor deste tipo: cada slide é um passo da cena.',
-  },
-  prova: {
-    nome: 'Prova / Portfólio',
-    objetivo: 'Mostrar o trabalho real. Substitui qualquer promessa por evidência.',
-    quandoUsar: 'Sempre que entregar um vídeo, um lançamento, um resultado.',
-    cadencia: '1× por semana',
-    capa: { layout: 'photo', theme: 'ink', full: true },
-    receita: ['photo', 'word', 'photo', 'split', 'split', 'photo', 'cta'],
-    temaInterno: 'ink',
-    tom: 'Menos texto, mais imagem. Deixa o trabalho falar. Diga que é real e de quem é.',
-    cta: 'Quer ver com um caso seu?',
-    naGrade: 'foto do trabalho — o tipo mais bonito na grade, use nas pontas',
-    nota: 'Regra: no mínimo 3 dos 6 slides são foto. Se não tem imagem boa, não é post de prova.',
-  },
-  didatico: {
-    nome: 'Didático',
-    objetivo: 'Ensinar algo útil. É o tipo que o seguidor SALVA — e salvamento pesa no alcance.',
-    quandoUsar: 'Explicar um conceito do nicho do Perfil.',
+  educativo: {
+    nome: 'Educativo',
+    objetivo: 'Ensinar algo útil, esclarecer uma dúvida real e ajudar numa decisão do público. Não é lista genérica.',
+    quandoUsar: 'Uma dúvida ou conceito específico do nicho do Perfil, com exemplo prático de verdade.',
     cadencia: '1× por semana',
     capa: { layout: 'cover', theme: 'ink' },
-    receita: ['cover', 'item', 'item', 'item', 'item', 'photo', 'cta'],
+    receita: ['cover', 'split', 'split', 'item', 'photo', 'cta'],
+    minTelas: 1,
+    maxTelas: 10,
     temaInterno: 'ink',
-    tom: 'Professor, não guru. Uma ideia por slide. Sem jargão sem explicar.',
-    cta: 'Pergunta direta pra puxar comentário sobre a própria experiência de quem lê',
+    tom: 'Professor, não guru. Parte de uma cena ou pergunta específica, desenvolve com exemplo, conclui com aplicação prática.',
+    cta: 'Ajuda ou atendimento pelo canal confirmado — nunca peça pra salvar o post',
     naGrade: 'texto sobre fundo escuro — o mais sóbrio da grade, dá respiro entre as fotos',
-    nota: 'Usa "item" (número empilhado), não "split". O empilhado lê como lista de aula.',
+    nota: 'Não reduzir a uma lista de dicas genéricas: uma dúvida, desenvolvida com profundidade e exemplo real, vale mais que várias dicas soltas.',
   },
-  dado: {
-    nome: 'Dado / Benchmark',
-    objetivo: 'Autoridade por número. Um dado concreto vale mais que três adjetivos.',
-    quandoUsar: 'Um dado de mercado, uma métrica, um benchmark do nicho.',
-    cadencia: '1× a cada 15 dias',
+  conexao: {
+    nome: 'Conexão',
+    objetivo: 'Demonstrar compreensão da rotina, dos desejos e das dificuldades do público — gera identificação de verdade.',
+    quandoUsar: 'Toda semana tem uma cena, rotina ou dúvida do público pra nomear com empatia.',
+    cadencia: '1–2× por semana',
     capa: { layout: 'photo', theme: 'ink', full: true },
-    receita: ['photo', 'bottom', 'split', 'photo', 'cta'],
+    receita: ['photo', 'split', 'split', 'word', 'photo', 'cta'],
+    minTelas: 1,
+    maxTelas: 10,
     temaInterno: 'ink',
-    tom: 'O número primeiro, o contexto depois. Sempre cite de onde veio.',
-    cta: 'Como está o seu?',
-    naGrade: 'o número sobre foto — o dado ganha escala e contexto',
-    nota: 'Post curto (5 slides, incluindo o CTA final). O dado é o conteúdo; o resto é moldura.',
+    tom: 'Segunda pessoa. Descreve a cena que o público vive, sem julgar. Não precisa vender em toda peça — pergunta ou convite leve também servem de fecho.',
+    cta: 'Pergunta ou convite leve, sem forçar venda — puxa comentário/identificação',
+    naGrade: 'foto escura sangrada — a mais fácil de reconhecer na grade',
+    nota: 'Não depende de "dor": abrange identificação, desejo, história e bastidores autênticos, sem inventar vivência que a empresa não teve.',
   },
-  oferta: {
-    nome: 'Oferta / Urgência',
-    objetivo: 'Converter. Chamada direta, sem rodeio.',
-    quandoUsar: 'Vaga aberta na agenda, condição por tempo limitado, lançamento.',
-    cadencia: 'no máximo 1× por mês — queima rápido se repetir',
-    capa: { layout: 'photo', theme: 'ink', full: true },
-    receita: ['photo', 'list', 'photo', 'cta'],
+  prova_social: {
+    nome: 'Prova Social',
+    objetivo: 'Transmitir confiança pela opinião, feedback ou experiência real de um cliente — nunca foto de produto isolada.',
+    quandoUsar: 'Sempre que existir um print de feedback real e legível — nunca fabricado.',
+    cadencia: '1× por semana, quando houver material',
+    capa: { layout: 'photo', theme: 'ink', full: false },
+    receita: ['photo'],
+    minTelas: 1,
+    maxTelas: 1,
     temaInterno: 'ink',
-    tom: 'Direto. Diz o que é, para quem, e o que fazer agora. Sem falsa escassez.',
-    cta: 'Chamada direta pra agir agora, sem enrolação',
-    naGrade: 'foto com o convite por cima — direto, sem parecer anúncio de template',
-    nota: 'Post curto (4 slides, incluindo o CTA final). Se precisar de mais slides pra explicar, não é oferta, é didático.',
+    tom: 'Como conversa com um amigo, complementando a sensação do feedback — nunca explicando ou repetindo o elogio ao leitor.',
+    cta: 'Convite concreto pra conhecer o produto/atendimento, pelo canal confirmado, quando houver convite comercial',
+    naGrade: 'o print real recortado — peça única, nunca carrossel',
+    nota: 'Peça única, título fixo "Feedback", sempre com um print real da pasta Prova Social da Galeria. Sem feedback real, não produzir — proponha outro tipo em vez de inventar.',
+  },
+  produtos_servicos: {
+    nome: 'Produtos e Serviços',
+    objetivo: 'Apresentar oferta real e ajudar a desejar, entender e contratar — vitrine, portfólio, demonstração, lançamento ou promoção.',
+    quandoUsar: 'Sempre que houver um produto/serviço concreto pra mostrar, com condição regular ou por tempo real (nunca inventada).',
+    cadencia: '1× por semana',
+    capa: { layout: 'photo', theme: 'ink', full: true },
+    receita: ['photo', 'list', 'photo', 'split', 'cta'],
+    minTelas: 1,
+    maxTelas: 10,
+    temaInterno: 'ink',
+    tom: 'Direto: situação de uso ou desejo, o produto/serviço concreto, detalhes confirmados, e um próximo passo. Sem inventar preço, prazo, desconto ou escassez.',
+    cta: 'Contato ou compra pelo destino confirmado',
+    naGrade: 'produto como protagonista — fotos precisam corresponder ao item real',
+    nota: 'Nunca inventar preço, prazo, condição, desconto ou escassez que não estejam no contexto de marca ou no briefing. Produto é sempre o protagonista visual.',
+  },
+  interativo: {
+    nome: 'Interativo',
+    objetivo: 'Convidar o público a participar de algo relevante com pouco esforço — enquete nativa do Instagram.',
+    quandoUsar: 'Uma pergunta clara, ligada à rotina/necessidade do público, com alternativas fáceis de tocar.',
+    cadencia: '1× por semana',
+    capa: { layout: 'enquete', theme: 'ink' },
+    receita: ['enquete', 'cta'],
+    minTelas: 1,
+    maxTelas: 2,
+    temaInterno: 'ink',
+    tom: 'Direto e leve. Uma pergunta só, nunca duas enquetes seguidas. Não presumir qual resposta a pessoa deu.',
+    cta: 'Enquete nativa inserida manualmente pela empresa — a peça só reserva o espaço',
+    naGrade: 'não aparece no feed — é exclusivo de Stories',
+    nota: 'Sempre formato Stories, nunca carrossel de feed. Uma 2ª tela comercial é opcional, só quando continuar o mesmo assunto.',
   },
 }
 

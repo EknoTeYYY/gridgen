@@ -40,6 +40,7 @@ export default async function contextoRoutes(app: FastifyInstance) {
         contextoExistente?.conteudoMarkdown ?? '',
         historico.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.conteudo })),
         body.mensagem,
+        perfil.canalConversaoConfirmado,
       )
     } catch (err) {
       // Detalhe real só no log — nunca na resposta (pode conter nome de env
@@ -56,6 +57,30 @@ export default async function contextoRoutes(app: FastifyInstance) {
       update: { conteudoMarkdown: resultado.markdown },
     })
 
-    return reply.send(resultado)
+    // Canal de conversão confirmado nesta troca — persiste no Perfil (doc
+    // editorial: "coletar canal no diagnóstico e recuperar destino
+    // confirmado", reaproveitado sem perguntar de novo a cada post). O
+    // destino em si vai pro campo certo do Perfil conforme o canal
+    // ("ligacao"/"whatsapp" → telefone, "lp" → site); "whatsapp_bio"/
+    // "cardapio_bio" não têm destino próprio, o link é sempre o da bio.
+    if (resultado.canalConversaoTipo) {
+      const destino = resultado.canalConversaoDestino
+      const dadosDestino =
+        destino && (resultado.canalConversaoTipo === 'ligacao' || resultado.canalConversaoTipo === 'whatsapp')
+          ? { telefoneContato: destino }
+          : destino && resultado.canalConversaoTipo === 'lp'
+            ? { url: destino }
+            : {}
+      await app.prisma.perfil.update({
+        where: { id: perfilId },
+        data: { canalConversaoTipo: resultado.canalConversaoTipo, canalConversaoConfirmado: true, ...dadosDestino },
+      })
+    }
+
+    return reply.send({
+      resposta: resultado.resposta,
+      markdown: resultado.markdown,
+      canalConversaoConfirmado: Boolean(resultado.canalConversaoTipo) || perfil.canalConversaoConfirmado,
+    })
   })
 }
