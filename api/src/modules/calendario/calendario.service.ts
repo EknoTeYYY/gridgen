@@ -11,7 +11,7 @@ import {
 } from '@gridgen/shared'
 import { resolverImagemAutomatica } from '../../lib/imagem-automatica.js'
 import { gerarRascunhoComIA } from '../geracao/geracao.service.js'
-import { CotaError, exigirCotaDeGeracoes, registrarConsumo } from '../planos/planos.service.js'
+import { CotaError, exigirCotaDeGeracoes, exigirRecursoDoPlano, registrarConsumo } from '../planos/planos.service.js'
 import {
   brandKitDoPerfil,
   montarPayloadRenderPrincipal,
@@ -258,6 +258,10 @@ export async function gerarCampanha(app: FastifyInstance, c: CampanhaCandidata):
   // caso raro a data é pulada, sem virar post vazio em erro.
   if (!c.pautaId) {
     try {
+      // Plano sem calendário com IA também não gera data sazonal (mesma
+      // regra da varredura) — cobre o job que já estava na fila antes de um
+      // downgrade.
+      await exigirRecursoDoPlano(app.prisma, perfil.contaId, 'calendarioMensal')
       await exigirCotaDeGeracoes(app.prisma, perfil.contaId, 1)
     } catch (err) {
       if (err instanceof CotaError) {

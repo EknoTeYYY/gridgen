@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
-import { proximaOcorrencia } from '@gridgen/shared'
+import { PLANOS, proximaOcorrencia } from '@gridgen/shared'
+import { calcularUso } from '../planos/planos.service.js'
 import { criarDataPersonalizadaSchema } from './calendario.schemas.js'
 import { dentroDaAntecedencia, enfileirarGeracaoImediata, proximasOcorrenciasCuradas, type CampanhaCandidata } from './calendario.service.js'
 
@@ -38,9 +39,14 @@ export default async function calendarioRoutes(app: FastifyInstance) {
 
     // Já pode cair dentro da antecedência no ato da criação (ex.: usuário
     // cadastra um aniversário pra daqui 2 dias) — não espera a varredura das
-    // 6h de amanhã, enfileira a geração agora mesmo.
+    // 6h de amanhã, enfileira a geração agora mesmo. Só pra plano com o
+    // calendário com IA e cota disponível (mesma regra da varredura em
+    // plugins/scheduler.ts); nos demais a data fica salva, sem gerar sozinha.
     const proxima = proximaOcorrencia(() => ({ mes: data.mes, dia: data.dia }), new Date())
-    if (dentroDaAntecedencia(proxima)) {
+    const uso = await calcularUso(app.prisma, contaId)
+    const podeGerarSozinho =
+      PLANOS[uso.plano].calendarioMensal && !uso.piloto?.expirado && (uso.geracoes.restantes === null || uso.geracoes.restantes > 0)
+    if (podeGerarSozinho && dentroDaAntecedencia(proxima)) {
       const candidato: CampanhaCandidata = {
         perfilId,
         slug: `perfil-${data.id}`,

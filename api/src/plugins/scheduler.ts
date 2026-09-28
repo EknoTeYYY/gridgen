@@ -9,6 +9,7 @@ import fp from 'fastify-plugin'
 import { Redis } from 'ioredis'
 import type { FastifyInstance } from 'fastify'
 import { env } from '../env.js'
+import { PLANOS } from '@gridgen/shared'
 import { calcularUso } from '../modules/planos/planos.service.js'
 import {
   BACKOFF_INICIAL_MS,
@@ -46,11 +47,14 @@ function candidataDoJob(dados: CampanhaCandidata): CampanhaCandidata {
   return { ...dados, data: new Date(dados.data) }
 }
 
-// Datas sazonais só entram na fila se a conta ainda tem cota no ciclo (e o
-// piloto não expirou). Sem isso o job nasceria só pra ser barrado — e, com o
-// jobId fixo por ocorrência, um job concluído impediria a data de voltar no
-// dia seguinte, depois de um pacote extra ou da virada do ciclo. Pautas de
-// mês aprovado passam sempre: a cota delas foi conferida na aprovação.
+// Datas sazonais (curadas e personalizadas) só entram na fila se o plano tem
+// o calendário com IA (Profissional pra cima, decisão de 28/09/2026 — senão
+// a varredura gastaria sozinha as gerações do Piloto/Essencial) e se a conta
+// ainda tem cota no ciclo. Sem isso o job nasceria só pra ser barrado — e,
+// com o jobId fixo por ocorrência, um job concluído impediria a data de
+// voltar no dia seguinte, depois de um pacote extra, da virada do ciclo ou de
+// um upgrade. Pautas de mês aprovado passam sempre: o plano e a cota delas
+// foram conferidos na aprovação.
 async function contasComCota(app: FastifyInstance, candidatas: CampanhaCandidata[]): Promise<CampanhaCandidata[]> {
   const perfis = await app.prisma.perfil.findMany({
     where: { id: { in: [...new Set(candidatas.map((c) => c.perfilId))] } },
@@ -60,7 +64,8 @@ async function contasComCota(app: FastifyInstance, candidatas: CampanhaCandidata
   const restantesPorConta = new Map<string, number>()
   for (const contaId of new Set(perfis.map((p) => p.contaId))) {
     const uso = await calcularUso(app.prisma, contaId)
-    restantesPorConta.set(contaId, uso.piloto?.expirado ? 0 : uso.geracoes.restantes ?? Infinity)
+    const semRecurso = !PLANOS[uso.plano].calendarioMensal || uso.piloto?.expirado
+    restantesPorConta.set(contaId, semRecurso ? 0 : uso.geracoes.restantes ?? Infinity)
   }
 
   const aceitas: CampanhaCandidata[] = []
@@ -77,7 +82,7 @@ async function contasComCota(app: FastifyInstance, candidatas: CampanhaCandidata
     aceitas.push(c)
   }
   if (aceitas.length < candidatas.length) {
-    app.log.info(`calendário sazonal: ${candidatas.length - aceitas.length} data(s) adiada(s) por falta de cota no plano`)
+    app.log.info(`calendário sazonal: ${candidatas.length - aceitas.length} data(s) fora da fila (plano sem calendário com IA ou sem cota)`)
   }
   return aceitas
 }
