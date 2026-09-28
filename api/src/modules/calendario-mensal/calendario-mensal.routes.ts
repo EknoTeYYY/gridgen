@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { editarPautaSchema, gerarPropostaMensalSchema } from './calendario-mensal.schemas.js'
+import { exigirCotaDeGeracoes, exigirRecursoDoPlano } from '../planos/planos.service.js'
 import { aprovarPropostaMensal, gerarPropostaMensal, PropostaJaAprovadaError } from './calendario-mensal.service.js'
 
 export default async function calendarioMensalRoutes(app: FastifyInstance) {
@@ -13,6 +14,7 @@ export default async function calendarioMensalRoutes(app: FastifyInstance) {
     if (!perfil) return reply.code(404).send({ erro: 'perfil não encontrado' })
 
     const { ano, mes } = gerarPropostaMensalSchema.parse(request.body)
+    await exigirRecursoDoPlano(app.prisma, contaId, 'calendarioMensal')
 
     let resultado
     try {
@@ -57,6 +59,12 @@ export default async function calendarioMensalRoutes(app: FastifyInstance) {
     const proposta = await app.prisma.propostaCalendario.findFirst({ where: { id: propostaId, perfil: { contaId } } })
     if (!proposta) return reply.code(404).send({ erro: 'proposta não encontrada' })
     if (proposta.status === 'aprovado') return reply.code(400).send({ erro: 'esta proposta já está aprovada' })
+
+    // Aprovar gera todas as pautas de uma vez — confere a cota do lote inteiro
+    // antes, em vez de deixar o mês pela metade quando a cota acabar no meio.
+    await exigirRecursoDoPlano(app.prisma, contaId, 'calendarioMensal')
+    const pautasAGerar = await app.prisma.pautaCalendario.count({ where: { propostaId, postId: null } })
+    await exigirCotaDeGeracoes(app.prisma, contaId, pautasAGerar)
 
     await aprovarPropostaMensal(app, propostaId)
     const atualizada = await app.prisma.propostaCalendario.findUniqueOrThrow({

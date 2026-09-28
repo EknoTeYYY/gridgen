@@ -21,6 +21,7 @@ import {
 } from '@gridgen/shared'
 import { getClaude } from '../../lib/claude.js'
 import { env } from '../../env.js'
+import type { UsoTokens } from '../planos/planos.service.js'
 
 // Doc editorial: "até cinco hashtags pertinentes por legenda, podendo ser
 // menos" — teto universal da geração principal (Instagram). Adaptações por
@@ -368,6 +369,8 @@ export interface RascunhoGerado {
   // Só populado quando `sugerirImagem` foi pedido; quem chama decide como (e
   // se) resolve isso numa imagem de verdade.
   buscasImagem?: (BuscaImagemSlide | null)[]
+  // Tokens da chamada — quem chama registra em ConsumoGeracao.
+  uso: UsoTokens
 }
 
 // Doc editorial: "até cinco hashtags pertinentes, podendo ser menos; não
@@ -431,6 +434,13 @@ async function chamarClaudeEExtrair(
     slides,
     nomePost,
     buscasImagem,
+    uso: {
+      modelo: resposta.model,
+      inputTokens: resposta.usage.input_tokens,
+      outputTokens: resposta.usage.output_tokens,
+      cacheReadTokens: resposta.usage.cache_read_input_tokens ?? undefined,
+      cacheWriteTokens: resposta.usage.cache_creation_input_tokens ?? undefined,
+    },
   }
 }
 

@@ -45,6 +45,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <div className="hidden items-center gap-7 max-lg:gap-5 sm:flex">
             <NavLink href="/como-funciona">Como funciona</NavLink>
             <NavDropdowns />
+            <NavLink href="/planos">Planos</NavLink>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
@@ -80,6 +81,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 </Link>
                 <Link href="/recursos" className="hover:text-foreground">
                   Recursos
+                </Link>
+                <Link href="/planos" className="hover:text-foreground">
+                  Planos
                 </Link>
                 <Link href="/privacidade" className="hover:text-foreground">
                   Privacidade

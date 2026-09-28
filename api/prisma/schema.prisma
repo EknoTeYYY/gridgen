@@ -67,14 +67,31 @@ model Conta {
   id        String   @id @default(uuid())
   nome      String
   slug      String   @unique
-  plano     String   @default("contratado")
+  // PlanoId de @gridgen/shared (piloto | essencial | profissional | agencia |
+  // sob_medida). Cobrança manual: quem muda o plano é o superadmin.
+  plano     String   @default("piloto")
   status    String   @default("ativa") // ativa | inativa — inativa bloqueia login/refresh (gestão de acesso, ex. inadimplência)
+  // Âncora do ciclo mensal de cobrança: o ciclo vira todo mês no mesmo dia.
+  // O consumo é contado por janela de ciclo (ConsumoGeracao.createdAt), então
+  // não existe job de "reset" pra esquecer de rodar.
+  cicloInicio    DateTime  @default(now())
+  pilotoExpiraEm DateTime?
+  // Overrides do plano (sob medida). Nulo = vale o limite do plano; nulo em
+  // sob medida = sem limite.
+  limiteGeracoes Int?
+  limitePerfis   Int?
+  perfisExtras   Int       @default(0)
+  // Pacotes extras valem só pro ciclo em que foram lançados
+  // (`geracoesExtrasCiclo` = início desse ciclo).
+  geracoesExtras      Int       @default(0)
+  geracoesExtrasCiclo DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   usuarios User[]
   perfis   Perfil[]
   convites ConviteConta[]
+  consumos ConsumoGeracao[]
 
   @@map("contas")
 }
@@ -496,8 +513,38 @@ model LeadContato {
   empresa   String?
   telefone  String?
   mensagem  String?
+  // "site" (formulário da LP) | "upgrade" (pedido de plano/pacote de dentro
+  // do dashboard — nesse caso `contaId` aponta a Conta que pediu).
+  origem    String   @default("site")
+  contaId   String?
   createdAt DateTime @default(now())
 
   @@index([createdAt])
   @@map("leads_contato")
+}
+
+// Uma linha por chamada de IA que produz conteúdo. `contabilizada` decide se
+// conta na cota do ciclo (post e adaptação contam; regeneração de adaptação
+// só conta depois das gratuitas por post). Tokens ficam registrados pra medir
+// custo real por Conta.
+model ConsumoGeracao {
+  id               String      @id @default(uuid())
+  contaId          String
+  perfilId         String?
+  postId           String?
+  canal            SaidaCanal?
+  tipo             String // post | adaptacao | regeneracao
+  contabilizada    Boolean     @default(true)
+  modelo           String?
+  inputTokens      Int?
+  outputTokens     Int?
+  cacheReadTokens  Int?
+  cacheWriteTokens Int?
+  createdAt        DateTime    @default(now())
+
+  conta Conta @relation(fields: [contaId], references: [id], onDelete: Cascade)
+
+  @@index([contaId, createdAt])
+  @@index([postId])
+  @@map("consumo_geracoes")
 }

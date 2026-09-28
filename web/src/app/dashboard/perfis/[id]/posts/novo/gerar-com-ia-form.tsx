@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Folder, Instagram, Loader2, Moon, Palette, Plus, Proportions, Sparkles, Sun, Tag, Target, X } from 'lucide-react'
 import {
@@ -51,7 +52,17 @@ function PillTrigger({
   )
 }
 
-export function GerarComIaForm({ perfilId, pastasGaleria = [] }: { perfilId: string; pastasGaleria?: string[] }) {
+export function GerarComIaForm({
+  perfilId,
+  pastasGaleria = [],
+  permiteOutrasRedes = true,
+}: {
+  perfilId: string
+  pastasGaleria?: string[]
+  // LinkedIn/TikTok são do Profissional pra cima — sem isso, os botões ficam
+  // desabilitados com a dica do plano (a api também recusa).
+  permiteOutrasRedes?: boolean
+}) {
   const router = useRouter()
   const [tipo, setTipo] = useState<TipoConteudo>('conexao')
   const [formato, setFormato] = useState<Formato>('feed')
@@ -64,6 +75,7 @@ export function GerarComIaForm({ perfilId, pastasGaleria = [] }: { perfilId: str
   const [pastaAberta, setPastaAberta] = useState(false)
   const [redes, setRedes] = useState<RedeSocial[]>([])
   const [erro, setErro] = useState<string | null>(null)
+  const [bloqueioDePlano, setBloqueioDePlano] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [gerandoPostId, setGerandoPostId] = useState<string | null>(null)
 
@@ -126,6 +138,7 @@ export function GerarComIaForm({ perfilId, pastasGaleria = [] }: { perfilId: str
     })
     if (resultado.erro) {
       setErro(resultado.erro)
+      setBloqueioDePlano(resultado.codigo === 'COTA_ESGOTADA' || resultado.codigo === 'PILOTO_EXPIRADO')
       setEnviando(false)
       return
     }
@@ -306,18 +319,20 @@ export function GerarComIaForm({ perfilId, pastasGaleria = [] }: { perfilId: str
               {REDES_EXTRA.map((rede) => {
                 const Icon = REDE_ICON[rede]
                 const selecionada = redes.includes(rede)
-                const desabilitada = estilo === 'tweet' || (estilo === 'grafico' && rede === 'tiktok')
+                const desabilitada = !permiteOutrasRedes || estilo === 'tweet' || (estilo === 'grafico' && rede === 'tiktok')
                 return (
                   <button
                     key={rede}
                     type="button"
                     disabled={desabilitada}
                     title={
-                      desabilitada
-                        ? estilo === 'tweet'
-                          ? 'Tweet é um formato exclusivo do Instagram'
-                          : 'TikTok não combina com o estilo Gráfico'
-                        : REDE_LABEL[rede]
+                      !permiteOutrasRedes
+                        ? `${REDE_LABEL[rede]}: disponível a partir do plano Profissional`
+                        : desabilitada
+                          ? estilo === 'tweet'
+                            ? 'Tweet é um formato exclusivo do Instagram'
+                            : 'TikTok não combina com o estilo Gráfico'
+                          : REDE_LABEL[rede]
                     }
                     onClick={() => alternarRede(rede)}
                     className={cn(
@@ -339,7 +354,19 @@ export function GerarComIaForm({ perfilId, pastasGaleria = [] }: { perfilId: str
         </div>
       </div>
 
-      {erro && <p className="text-sm text-destructive">{erro}</p>}
+      {erro && (
+        <p className="text-sm text-destructive">
+          {erro}
+          {bloqueioDePlano && (
+            <>
+              {' '}
+              <Link href="/dashboard/plano" className="font-medium underline underline-offset-2">
+                Ver planos e pacotes
+              </Link>
+            </>
+          )}
+        </p>
+      )}
     </form>
   )
 }

@@ -12,6 +12,9 @@ export interface ResultadoAcao {
 export interface ResultadoGerarPost extends ResultadoAcao {
   postId?: string
   status?: Post['status']
+  // Preenchido quando o bloqueio foi o limite do plano (402) — a tela
+  // oferece o caminho de upgrade junto da mensagem.
+  codigo?: string
 }
 
 export async function gerarPostComIA(
@@ -35,7 +38,8 @@ export async function gerarPostComIA(
       body: JSON.stringify(valores),
     })
   } catch (err) {
-    return { erro: err instanceof ServerFetchError ? err.message : 'erro inesperado ao gerar o post com IA' }
+    if (err instanceof ServerFetchError) return { erro: err.message, codigo: err.codigo }
+    return { erro: 'erro inesperado ao gerar o post com IA' }
   }
   // Dispara o render na hora, antes de devolver o controle pro cliente — se
   // passar (camposFaltando ok), o post já nasce "gerando". Se falhar (raro:

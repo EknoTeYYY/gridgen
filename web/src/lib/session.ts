@@ -26,6 +26,9 @@ export class ServerFetchError extends Error {
   constructor(
     public status: number,
     message: string,
+    // Código de negócio devolvido pela api (ex.: "COTA_ESGOTADA" no 402 de
+    // limite do plano) — as telas usam pra oferecer o upgrade no lugar certo.
+    public codigo?: string,
   ) {
     super(message)
   }
@@ -78,8 +81,9 @@ export async function serverFetch<T>(
     } catch {
       // resposta sem corpo JSON — segue com detalhes nulo
     }
-    const mensagem = (detalhes as { erro?: string } | null)?.erro || `Requisição falhou (${res.status})`
-    throw new ServerFetchError(res.status, mensagem)
+    const corpo = detalhes as { erro?: string; codigo?: string } | null
+    const mensagem = corpo?.erro || `Requisição falhou (${res.status})`
+    throw new ServerFetchError(res.status, mensagem, corpo?.codigo)
   }
 
   if (res.status === 204) return undefined as T

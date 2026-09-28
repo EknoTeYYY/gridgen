@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { SECOES_CONTEXTO, secoesPendentes } from '@gridgen/shared'
 import { getClaude } from '../../lib/claude.js'
+import type { UsoTokens } from '../planos/planos.service.js'
 import { env } from '../../env.js'
 
 // Antes disso, a entrevista era 100% aberta ("conte sobre a marca") — na
@@ -76,6 +77,8 @@ export interface ResultadoContexto {
   // `contexto.routes.ts` persiste isso no Perfil quando presente.
   canalConversaoTipo?: string
   canalConversaoDestino?: string
+  // Tokens da chamada — a rota registra (sem contar na cota).
+  uso: UsoTokens
 }
 
 export async function conversarSobreContexto(
@@ -133,5 +136,12 @@ export async function conversarSobreContexto(
     markdown: entrada.markdown,
     canalConversaoTipo: typeof entrada.canalConversaoTipo === 'string' ? entrada.canalConversaoTipo : undefined,
     canalConversaoDestino: typeof entrada.canalConversaoDestino === 'string' ? entrada.canalConversaoDestino.trim() : undefined,
+    uso: {
+      modelo: resposta.model,
+      inputTokens: resposta.usage.input_tokens,
+      outputTokens: resposta.usage.output_tokens,
+      cacheReadTokens: resposta.usage.cache_read_input_tokens ?? undefined,
+      cacheWriteTokens: resposta.usage.cache_creation_input_tokens ?? undefined,
+    },
   }
 }

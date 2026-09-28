@@ -11,6 +11,7 @@ import {
 } from '@gridgen/shared'
 import { resolverImagemAutomatica } from '../../lib/imagem-automatica.js'
 import { gerarRascunhoComIA } from '../geracao/geracao.service.js'
+import { CotaError, exigirCotaDeGeracoes, registrarConsumo } from '../planos/planos.service.js'
 import {
   brandKitDoPerfil,
   montarPayloadRenderPrincipal,
@@ -248,6 +249,24 @@ export async function gerarCampanha(app: FastifyInstance, c: CampanhaCandidata):
   if (await jaGerado(app, c)) return // idempotente: corrida ou retry duplicado
 
   const perfil = await app.prisma.perfil.findUniqueOrThrow({ where: { id: c.perfilId } })
+  // Pauta de mês aprovado não confere cota de novo: a aprovação já conferiu o
+  // lote inteiro, e barrar aqui deixaria o mês pela metade se algo consumir
+  // no meio. Data sazonal confere: a varredura (plugins/scheduler.ts) já nem
+  // enfileira conta sem cota — e é isso que deixa a data voltar no dia
+  // seguinte, porque o jobId é fixo por ocorrência e um job concluído barra
+  // um novo. Isto aqui só cobre a corrida entre a varredura e o job; nesse
+  // caso raro a data é pulada, sem virar post vazio em erro.
+  if (!c.pautaId) {
+    try {
+      await exigirCotaDeGeracoes(app.prisma, perfil.contaId, 1)
+    } catch (err) {
+      if (err instanceof CotaError) {
+        app.log.warn(`campanha "${c.nome}" não gerada: ${err.message}`)
+        return
+      }
+      throw err
+    }
+  }
   const contexto = await app.prisma.contextoMarkdown.findUnique({ where: { perfilId: c.perfilId } })
   const metodoConversao = resolverMetodoConversaoPadrao(c.tipoSugerido, perfil)
   const rascunho = await gerarRascunhoComIA(
@@ -290,7 +309,10 @@ export async function gerarCampanha(app: FastifyInstance, c: CampanhaCandidata):
     app.log.warn(`campanha "${c.nome}" gerou com campo obrigatório vazio (${detalhe}) — post criado em erro pra completar manualmente`)
   }
 
-  const post = await app.prisma.post.create({
+  // Post, vínculo da pauta e consumo juntos: se um falhar, o retry do job não
+  // encontra um post "já gerado" que nunca foi contado na cota.
+  const post = await app.prisma.$transaction(async (tx) => {
+  const criado = await tx.post.create({
     data: {
       perfilId: c.perfilId,
       slug,
@@ -311,7 +333,10 @@ export async function gerarCampanha(app: FastifyInstance, c: CampanhaCandidata):
       status: faltando.length > 0 ? 'erro' : 'gerando',
     },
   })
-  if (c.pautaId) await app.prisma.pautaCalendario.update({ where: { id: c.pautaId }, data: { postId: post.id } })
+  if (c.pautaId) await tx.pautaCalendario.update({ where: { id: c.pautaId }, data: { postId: criado.id } })
+  await registrarConsumo(tx, { contaId: perfil.contaId, perfilId: c.perfilId, postId: criado.id, tipo: 'post', ...rascunho.uso })
+  return criado
+  })
 
   if (faltando.length === 0) {
     const renderJob = await app.prisma.renderJob.create({ data: { postId: post.id, status: 'processando' } })

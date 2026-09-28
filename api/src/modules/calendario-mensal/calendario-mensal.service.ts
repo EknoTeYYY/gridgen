@@ -5,6 +5,7 @@ import { getClaude } from '../../lib/claude.js'
 import { env } from '../../env.js'
 import { candidatoDePauta, enfileirarGeracaoImediata, type CampanhaCandidata } from '../calendario/calendario.service.js'
 import { removerTravessoes } from '../geracao/geracao.service.js'
+import { registrarConsumo } from '../planos/planos.service.js'
 
 const TIPOS_VALIDOS = ['educativo', 'conexao', 'prova_social', 'produtos_servicos', 'interativo'] as const
 const FORMATOS_VALIDOS = ['feed', 'square', 'story'] as const
@@ -136,6 +137,19 @@ export async function gerarPropostaMensal(app: FastifyInstance, perfilId: string
     messages: [{ role: 'user', content: prompt }],
     tools: [ferramenta],
     tool_choice: { type: 'tool', name: ferramenta.name },
+  })
+
+  // Tokens registrados antes de validar a resposta: a chamada foi cobrada
+  // mesmo que a proposta venha inválida. Não conta na cota (só medição).
+  const perfil = await app.prisma.perfil.findUniqueOrThrow({ where: { id: perfilId }, select: { contaId: true } })
+  await registrarConsumo(app.prisma, {
+    contaId: perfil.contaId,
+    perfilId,
+    tipo: 'calendario',
+    contabilizada: false,
+    modelo: resposta.model,
+    inputTokens: resposta.usage.input_tokens,
+    outputTokens: resposta.usage.output_tokens,
   })
 
   const chamada = resposta.content.find((bloco) => bloco.type === 'tool_use')

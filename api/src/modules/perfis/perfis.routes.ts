@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { slugify } from '../../lib/slug.js'
+import { exigirVagaDePerfil } from '../planos/planos.service.js'
 import { atualizarPerfilSchema, criarPerfilSchema } from './perfis.schemas.js'
 
 export default async function perfisRoutes(app: FastifyInstance) {
@@ -8,6 +9,7 @@ export default async function perfisRoutes(app: FastifyInstance) {
   app.post('/perfis', async (request, reply) => {
     const contaId = request.usuarioAtual!.contaId
     const body = criarPerfilSchema.parse(request.body)
+    await exigirVagaDePerfil(app.prisma, contaId)
 
     const baseSlug = slugify(body.nome)
     let slug = baseSlug

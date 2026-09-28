@@ -1,6 +1,6 @@
 'use client'
 
-import { Users2 } from 'lucide-react'
+import { Gauge, Users2 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -8,7 +8,10 @@ import { cn } from '@/lib/utils'
 export function SidebarNav() {
   const pathname = usePathname()
 
-  const itens = [{ href: '/dashboard/perfis', label: 'Perfis', icon: Users2 }]
+  const itens = [
+    { href: '/dashboard/perfis', label: 'Perfis', icon: Users2 },
+    { href: '/dashboard/plano', label: 'Plano e uso', icon: Gauge },
+  ]
 
   return (
     <nav className="flex shrink-0 flex-col gap-1 text-sm">

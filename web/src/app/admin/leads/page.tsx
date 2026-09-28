@@ -1,6 +1,7 @@
 import { Mail } from 'lucide-react'
 import { serverFetch } from '@/lib/session'
 import type { LeadContato } from '@/lib/types'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 
 function formatarData(iso: string): string {
@@ -32,7 +33,10 @@ export default async function AdminLeadsPage() {
             <Card key={lead.id}>
               <CardContent className="flex flex-col gap-2 p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <p className="font-medium">{lead.nome}</p>
+                  <p className="flex items-center gap-2 font-medium">
+                    {lead.nome}
+                    {lead.origem === 'upgrade' && <Badge>Pedido de upgrade</Badge>}
+                  </p>
                   <span className="text-xs text-muted-foreground">{formatarData(lead.createdAt)}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">

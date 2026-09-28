@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
-export function ContatoForm() {
+export function ContatoForm({ mensagemInicial = '' }: { mensagemInicial?: string }) {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [empresa, setEmpresa] = useState('')
   const [telefone, setTelefone] = useState('')
-  const [mensagem, setMensagem] = useState('')
+  const [mensagem, setMensagem] = useState(mensagemInicial)
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [enviado, setEnviado] = useState(false)

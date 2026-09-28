@@ -3,6 +3,8 @@ import { env } from '../../env.js'
 import { enviarConviteConta } from '../../lib/email.js'
 import { slugify } from '../../lib/slug.js'
 import { gerarTokenOpaco, hashToken } from '../../lib/token.js'
+import { PILOTO_DIAS, type UsoConta } from '@gridgen/shared'
+import { calcularUso } from '../planos/planos.service.js'
 
 function expiresAtConvite(): Date {
   return new Date(Date.now() + env.INVITE_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000)
@@ -21,6 +23,12 @@ export interface ContaComStatus {
   totalPerfis: number
   statusConvite: StatusConvite | null
   conviteEmail: string | null
+  uso: UsoConta
+  // Valores crus da Conta, pro diálogo de plano do admin abrir preenchido —
+  // sem eles, salvar o diálogo apagava overrides e Perfis extras.
+  limiteGeracoes: number | null
+  limitePerfis: number | null
+  perfisExtras: number
 }
 
 export async function listarContas(prisma: PrismaClient): Promise<ContaComStatus[]> {
@@ -32,7 +40,8 @@ export async function listarContas(prisma: PrismaClient): Promise<ContaComStatus
     },
   })
 
-  return contas.map((conta) => {
+  const usos = await Promise.all(contas.map((conta) => calcularUso(prisma, conta.id)))
+  return contas.map((conta, i) => {
     const ultimoConvite = conta.convites[0] ?? null
     let statusConvite: StatusConvite | null = null
     if (ultimoConvite) {
@@ -53,6 +62,10 @@ export async function listarContas(prisma: PrismaClient): Promise<ContaComStatus
       totalPerfis: conta._count.perfis,
       statusConvite,
       conviteEmail: ultimoConvite?.email ?? null,
+      uso: usos[i],
+      limiteGeracoes: conta.limiteGeracoes,
+      limitePerfis: conta.limitePerfis,
+      perfisExtras: conta.perfisExtras,
     }
   })
 }
@@ -115,7 +128,11 @@ export async function criarContaComConvite(
 
   const rawToken = gerarTokenOpaco()
   const conta = await prisma.$transaction(async (tx) => {
-    const conta = await tx.conta.create({ data: { nome: params.nome, slug } })
+    // Conta nova nasce no piloto; o prazo corre a partir da criação e o
+    // superadmin ajusta no painel se o convite demorar a ser aceito.
+    const conta = await tx.conta.create({
+      data: { nome: params.nome, slug, plano: 'piloto', pilotoExpiraEm: new Date(Date.now() + PILOTO_DIAS * 24 * 60 * 60 * 1000) },
+    })
     await tx.conviteConta.create({
       data: {
         contaId: conta.id,

@@ -10,6 +10,7 @@ import {
   slidesParaJson,
   textoConversao,
 } from '../posts/posts.service.js'
+import { classificarAdaptacao, exigirCotaDeGeracoes, exigirRecursoDoPlano, registrarConsumo } from '../planos/planos.service.js'
 import { adaptarRascunhoParaRede, gerarRascunhoComIA } from './geracao.service.js'
 import { gerarComIaSchema } from './geracao.schemas.js'
 
@@ -66,6 +67,11 @@ export default async function geracaoRoutes(app: FastifyInstance) {
       }
       imagensReferencia = itensReferencia.map((item) => item.url)
     }
+
+    // Cota do plano: o post + cada rede extra marcada (a adaptação automática
+    // de cada uma é outra geração). Checa antes de gastar a chamada de IA.
+    if (body.redes.length > 0) await exigirRecursoDoPlano(app.prisma, contaId, 'adaptacaoRedes')
+    await exigirCotaDeGeracoes(app.prisma, contaId, 1 + body.redes.length)
 
     const contexto = await app.prisma.contextoMarkdown.findUnique({ where: { perfilId } })
     const metodoConversao = body.metodoConversao ?? resolverMetodoConversaoPadrao(body.tipo, perfil)
@@ -124,18 +130,23 @@ export default async function geracaoRoutes(app: FastifyInstance) {
     // um; senão o que a IA sugeriu) — mesmo parâmetro `tituloPersonalizado`
     // já usado pelo calendário sazonal pra nomear posts pela campanha.
     const slug = await proximoSlugDePost(app.prisma, perfilId, body.tipo, rascunho.nomePost)
-    const post = await app.prisma.post.create({
-      data: {
-        perfilId,
-        slug,
-        tipo: body.tipo,
-        formato: body.formato,
-        caption: rascunho.caption,
-        hashtags: rascunho.hashtags,
-        slides: slidesParaJson(rascunho.slides),
-        estiloVisual: body.estilo,
-        metodoConversao,
-      },
+    // Post e consumo na mesma transação: não existe post sem a geração contada.
+    const post = await app.prisma.$transaction(async (tx) => {
+      const criado = await tx.post.create({
+        data: {
+          perfilId,
+          slug,
+          tipo: body.tipo,
+          formato: body.formato,
+          caption: rascunho.caption,
+          hashtags: rascunho.hashtags,
+          slides: slidesParaJson(rascunho.slides),
+          estiloVisual: body.estilo,
+          metodoConversao,
+        },
+      })
+      await registrarConsumo(tx, { contaId, perfilId, postId: criado.id, tipo: 'post', ...rascunho.uso })
+      return criado
     })
 
     // Redes extra marcadas já na criação: cada uma ganha uma SaidaEntrega
@@ -165,6 +176,13 @@ export default async function geracaoRoutes(app: FastifyInstance) {
     const saida = await app.prisma.saidaEntrega.findFirst({ where: { postId: id, canal: rede } })
     if (!saida) return reply.code(400).send({ erro: 'marque essa rede pro post antes de adaptar o conteúdo pra ela' })
 
+    if (rede !== 'instagram') await exigirRecursoDoPlano(app.prisma, contaId, 'adaptacaoRedes')
+
+    // Primeira adaptação da rede conta como geração; adaptar de novo é
+    // regeneração (grátis até o limite por post, ver `classificarAdaptacao`).
+    const classificacao = await classificarAdaptacao(app.prisma, id, rede)
+    if (classificacao.contabilizada) await exigirCotaDeGeracoes(app.prisma, contaId, 1)
+
     const contexto = await app.prisma.contextoMarkdown.findUnique({ where: { perfilId: post.perfilId } })
 
     let adaptado
@@ -180,6 +198,7 @@ export default async function geracaoRoutes(app: FastifyInstance) {
       app.log.error(err, 'falha ao adaptar post pra rede')
       return reply.code(502).send({ erro: 'Não foi possível adaptar o conteúdo agora. Tente novamente em instantes.' })
     }
+    await registrarConsumo(app.prisma, { contaId, perfilId: post.perfilId, postId: id, canal: rede, ...classificacao, ...adaptado.uso })
 
     const atualizado = await app.prisma.saidaEntrega.update({
       where: { id: saida.id },

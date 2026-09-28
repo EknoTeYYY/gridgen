@@ -1,3 +1,7 @@
+import type { UsoConta } from '@gridgen/shared'
+
+export type { UsoConta }
+
 // Shape retornado pela api (modelo Perfil do Prisma, serializado em JSON).
 export interface Perfil {
   id: string
@@ -184,6 +188,10 @@ export interface ContaComStatus {
   totalPerfis: number
   statusConvite: StatusConvite | null
   conviteEmail: string | null
+  uso: UsoConta
+  limiteGeracoes: number | null
+  limitePerfis: number | null
+  perfisExtras: number
 }
 
 export interface ConviteInfo {
@@ -198,6 +206,9 @@ export interface LeadContato {
   empresa: string | null
   telefone: string | null
   mensagem: string | null
+  // "site" (formulário da LP) | "upgrade" (pedido de plano de dentro do dashboard)
+  origem: string
+  contaId: string | null
   createdAt: string
 }
 

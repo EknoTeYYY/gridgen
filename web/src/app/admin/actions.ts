@@ -60,3 +60,33 @@ export async function excluirConta(contaId: string): Promise<ResultadoAcao> {
   revalidatePath('/admin')
   return {}
 }
+
+export async function alterarPlanoConta(
+  contaId: string,
+  valores: {
+    plano: string
+    reiniciarCiclo: boolean
+    pilotoExpiraEm?: string | null
+    limiteGeracoes?: number | null
+    limitePerfis?: number | null
+    perfisExtras?: number
+  },
+): Promise<ResultadoAcao> {
+  try {
+    await serverFetch(`/admin/contas/${contaId}/plano`, { method: 'PATCH', body: JSON.stringify(valores) })
+  } catch (err) {
+    return { erro: err instanceof ServerFetchError ? err.message : 'erro inesperado ao alterar o plano' }
+  }
+  revalidatePath('/admin')
+  return {}
+}
+
+export async function adicionarPacoteExtra(contaId: string, pacotes: number): Promise<ResultadoAcao> {
+  try {
+    await serverFetch(`/admin/contas/${contaId}/pacote-extra`, { method: 'POST', body: JSON.stringify({ pacotes }) })
+  } catch (err) {
+    return { erro: err instanceof ServerFetchError ? err.message : 'erro inesperado ao lançar o pacote' }
+  }
+  revalidatePath('/admin')
+  return {}
+}

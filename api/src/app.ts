@@ -16,6 +16,8 @@ import geracaoRoutes from './modules/geracao/geracao.routes.js'
 import imagensRoutes from './modules/imagens/imagens.routes.js'
 import leadsRoutes from './modules/leads/leads.routes.js'
 import perfisRoutes from './modules/perfis/perfis.routes.js'
+import planosRoutes from './modules/planos/planos.routes.js'
+import { CotaError } from './modules/planos/planos.service.js'
 import postsRoutes from './modules/posts/posts.routes.js'
 
 export async function buildApp() {
@@ -27,6 +29,11 @@ export async function buildApp() {
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {
       return reply.code(400).send({ erro: 'validação falhou', detalhes: error.flatten() })
+    }
+    // Limite do plano: 402 com o código e o retrato de uso, pro dashboard
+    // mostrar a recomendação de upgrade junto da mensagem.
+    if (error instanceof CotaError) {
+      return reply.code(402).send({ erro: error.message, codigo: error.codigo, uso: error.uso })
     }
     // Erros que o próprio Fastify já classifica como erro de cliente (ex.:
     // FST_ERR_CTP_EMPTY_JSON_BODY) carregam seu próprio statusCode — repassa
@@ -61,6 +68,7 @@ export async function buildApp() {
   await app.register(calendarioMensalRoutes)
   await app.register(galeriaRoutes)
   await app.register(leadsRoutes)
+  await app.register(planosRoutes)
 
   return app
 }

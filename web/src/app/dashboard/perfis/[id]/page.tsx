@@ -1,8 +1,9 @@
-import { ExternalLink, ImageIcon, Instagram, Linkedin, Mail, Music2, Phone } from 'lucide-react'
+import { CalendarRange, ExternalLink, ImageIcon, Instagram, Linkedin, Mail, Music2, Phone } from 'lucide-react'
 import Link from 'next/link'
+import { PLANOS } from '@gridgen/shared'
 import { maskDocumento } from '@/lib/mascaras'
 import { serverFetch } from '@/lib/session'
-import type { GaleriaItem, Perfil, PropostaCalendario } from '@/lib/types'
+import type { GaleriaItem, Perfil, PropostaCalendario, UsoConta } from '@/lib/types'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { proximoMesAno } from './proximo-mes'
@@ -41,11 +42,14 @@ const CORES = (perfil: Perfil) =>
 export default async function VisaoGeralPerfilPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { ano, mes } = proximoMesAno()
-  const [perfil, galeria, propostaMensal] = await Promise.all([
+  const [perfil, galeria, propostaMensal, uso] = await Promise.all([
     serverFetch<Perfil>(`/perfis/${id}`),
     serverFetch<GaleriaItem[]>(`/perfis/${id}/galeria`),
     serverFetch<PropostaCalendario | null>(`/perfis/${id}/calendario-mensal?ano=${ano}&mes=${mes}`),
+    serverFetch<UsoConta>('/conta/uso').catch(() => null),
   ])
+  // Sem o uso (falha de leitura), não bloqueia: a api é quem garante a regra.
+  const temCalendarioMensal = uso ? PLANOS[uso.plano].calendarioMensal : true
 
   const documentoFormatado = formatarDocumento(perfil.documento)
   const temContato = Boolean(perfil.telefoneContato || perfil.emailContato || documentoFormatado)
@@ -57,7 +61,27 @@ export default async function VisaoGeralPerfilPage({ params }: { params: Promise
           logo na entrada do perfil, antes de qualquer outro card, pra dar
           status ("mês seguinte já resolvido?") sem precisar abrir mais uma
           aba. */}
-      <PropostaMensal perfilId={id} propostaInicial={propostaMensal} />
+      {temCalendarioMensal ? (
+        <PropostaMensal perfilId={id} propostaInicial={propostaMensal} />
+      ) : (
+        <Card className="border-violet-500/40 bg-violet-500/5">
+          <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <CalendarRange className="mt-0.5 size-5 shrink-0 text-violet-500" />
+              <div>
+                <p className="font-medium">Calendário mensal com IA</p>
+                <p className="text-sm text-muted-foreground">
+                  A IA propõe o mês inteiro de conteúdo desta marca e, ao aprovar, gera todos os posts de uma vez.
+                  Disponível a partir do plano {PLANOS.profissional.nome}.
+                </p>
+              </div>
+            </div>
+            <Link href="/dashboard/plano" className={buttonVariants({ size: 'sm' })}>
+              Ver planos
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>

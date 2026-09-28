@@ -9,6 +9,7 @@ import fp from 'fastify-plugin'
 import { Redis } from 'ioredis'
 import type { FastifyInstance } from 'fastify'
 import { env } from '../env.js'
+import { calcularUso } from '../modules/planos/planos.service.js'
 import {
   BACKOFF_INICIAL_MS,
   candidatosPendentes,
@@ -45,6 +46,42 @@ function candidataDoJob(dados: CampanhaCandidata): CampanhaCandidata {
   return { ...dados, data: new Date(dados.data) }
 }
 
+// Datas sazonais só entram na fila se a conta ainda tem cota no ciclo (e o
+// piloto não expirou). Sem isso o job nasceria só pra ser barrado — e, com o
+// jobId fixo por ocorrência, um job concluído impediria a data de voltar no
+// dia seguinte, depois de um pacote extra ou da virada do ciclo. Pautas de
+// mês aprovado passam sempre: a cota delas foi conferida na aprovação.
+async function contasComCota(app: FastifyInstance, candidatas: CampanhaCandidata[]): Promise<CampanhaCandidata[]> {
+  const perfis = await app.prisma.perfil.findMany({
+    where: { id: { in: [...new Set(candidatas.map((c) => c.perfilId))] } },
+    select: { id: true, contaId: true },
+  })
+  const contaDoPerfil = new Map(perfis.map((p) => [p.id, p.contaId]))
+  const restantesPorConta = new Map<string, number>()
+  for (const contaId of new Set(perfis.map((p) => p.contaId))) {
+    const uso = await calcularUso(app.prisma, contaId)
+    restantesPorConta.set(contaId, uso.piloto?.expirado ? 0 : uso.geracoes.restantes ?? Infinity)
+  }
+
+  const aceitas: CampanhaCandidata[] = []
+  for (const c of candidatas) {
+    const contaId = contaDoPerfil.get(c.perfilId)
+    if (!contaId) continue
+    if (c.pautaId) {
+      aceitas.push(c)
+      continue
+    }
+    const restantes = restantesPorConta.get(contaId) ?? 0
+    if (restantes < 1) continue
+    restantesPorConta.set(contaId, restantes - 1)
+    aceitas.push(c)
+  }
+  if (aceitas.length < candidatas.length) {
+    app.log.info(`calendário sazonal: ${candidatas.length - aceitas.length} data(s) adiada(s) por falta de cota no plano`)
+  }
+  return aceitas
+}
+
 export default fp(async (app: FastifyInstance) => {
   const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null })
   const queue = new Queue(QUEUE_NAME, { connection })
@@ -69,7 +106,7 @@ export default fp(async (app: FastifyInstance) => {
     QUEUE_NAME,
     async (job: Job) => {
       if (job.name === JOB_ESCANEAR) {
-        const pendentes = await candidatosPendentes(app)
+        const pendentes = await contasComCota(app, await candidatosPendentes(app))
         for (const c of pendentes) {
           await queue.add(JOB_GERAR_CAMPANHA, c, {
             jobId: idDoJobGerar(c),

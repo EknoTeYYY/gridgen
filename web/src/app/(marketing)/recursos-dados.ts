@@ -24,13 +24,13 @@ export const RECURSOS: RecursoDetalhado[] = [
     slug: 'perfis',
     icon: Layers,
     titulo: 'Um Perfil por marca',
-    resumo: 'Uma conta gerencia quantos Perfis (marcas ou clientes) forem necessários, cada um isolado dos outros.',
+    resumo: 'Uma conta gerencia várias marcas ou clientes, cada Perfil isolado dos outros.',
     detalhe:
       'Cada Perfil guarda seu próprio BrandKit, contexto de marca, posts e calendário. Uma agência com 12 clientes ativos é 12 Perfis dentro da mesma conta, sem misturar conteúdo, identidade visual ou histórico de um cliente com o de outro.',
     pontos: [
       'BrandKit próprio por Perfil: cores, fonte e logo',
       'Posts e calendário isolados por Perfil',
-      'Sem limite artificial de quantos Perfis uma conta pode ter',
+      'Até 15 Perfis no plano Agência, com Perfil extra quando a carteira cresce',
     ],
   },
   {

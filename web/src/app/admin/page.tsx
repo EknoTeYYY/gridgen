@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { ExcluirContaButton } from './excluir-conta-button'
 import { NovaContaDialog } from './nova-conta-dialog'
+import { PlanoContaDialog } from './plano-conta-dialog'
 import { ReenviarConviteButton } from './reenviar-convite-button'
 import { StatusContaButton } from './status-conta-button'
 
@@ -64,6 +65,25 @@ export default async function AdminPage() {
                     {conta.totalUsuarios} {conta.totalUsuarios === 1 ? 'usuário' : 'usuários'}
                     {conta.conviteEmail && !conta.totalUsuarios ? ` · convite: ${conta.conviteEmail}` : ''}
                   </p>
+                  {/* Plano fica do lado da conta (é dado dela), separado das
+                      ações de acesso à direita (convite, desativar, excluir). */}
+                  <div className="mt-2 flex items-center gap-2">
+                    <PlanoContaDialog
+                      contaId={conta.id}
+                      nome={conta.nome}
+                      uso={conta.uso}
+                      atuais={{ limiteGeracoes: conta.limiteGeracoes, limitePerfis: conta.limitePerfis, perfisExtras: conta.perfisExtras }}
+                    />
+                    <p className="truncate text-xs text-muted-foreground">
+                      {conta.uso.nomePlano} · {conta.uso.geracoes.usadas}/{conta.uso.geracoes.limite ?? '∞'} gerações no ciclo
+                      {conta.uso.piloto ? (conta.uso.piloto.expirado ? ' · piloto expirado' : ` · piloto: ${conta.uso.piloto.diasRestantes}d`) : ''}
+                    </p>
+                    {conta.uso.nivel !== 'ok' && (
+                      <Badge variant={conta.uso.nivel === 'atencao' ? 'outline' : 'destructive'}>
+                        {conta.uso.nivel === 'esgotado' ? 'Cota esgotada' : 'Uso alto'}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {conta.status === 'inativa' && <Badge variant="destructive">Inativa</Badge>}

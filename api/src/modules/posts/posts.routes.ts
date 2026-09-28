@@ -18,6 +18,7 @@ import {
   validarSlidesContraReceita,
 } from './posts.service.js'
 import { agendarPostSchema, atualizarPostSchema } from './posts.schemas.js'
+import { exigirRecursoDoPlano } from '../planos/planos.service.js'
 
 // Adiciona `arquivos` calculado (mesma lógica do Post: só existe lista
 // esperada quando a imagem dessa rede já foi renderizada) em cada saída —
@@ -168,6 +169,10 @@ export default async function postsRoutes(app: FastifyInstance) {
 
     const post = await app.prisma.post.findFirst({ where: { id, perfil: { contaId } } })
     if (!post) return reply.code(404).send({ erro: 'post não encontrado' })
+
+    // Marcar LinkedIn/TikTok é a porta de entrada da adaptação — barra aqui,
+    // com a mensagem do plano, em vez de deixar marcar e falhar só no adaptar.
+    await exigirRecursoDoPlano(app.prisma, contaId, 'adaptacaoRedes')
 
     // Tweet é exclusivo do Instagram (card de publicação de rede social não
     // faz sentido em outro lugar). Gráfico permite só LinkedIn — o mesmo

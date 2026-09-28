@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { registrarConsumo } from '../planos/planos.service.js'
 import { conversarSobreContexto } from './contexto.service.js'
 import { enviarMensagemSchema } from './contexto.schemas.js'
 
@@ -48,6 +49,7 @@ export default async function contextoRoutes(app: FastifyInstance) {
       app.log.error(err, 'falha ao conversar com a IA de contexto')
       return reply.code(502).send({ erro: 'Não foi possível responder agora. Tente novamente em instantes.' })
     }
+    await registrarConsumo(app.prisma, { contaId, perfilId, tipo: 'contexto', contabilizada: false, ...resultado.uso })
 
     await app.prisma.mensagemContexto.create({ data: { perfilId, role: 'user', conteudo: body.mensagem } })
     await app.prisma.mensagemContexto.create({ data: { perfilId, role: 'assistant', conteudo: resultado.resposta } })

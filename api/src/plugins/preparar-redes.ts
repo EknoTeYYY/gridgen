@@ -15,6 +15,7 @@ import type { FastifyInstance } from 'fastify'
 import type { RedeSocial } from '@gridgen/shared'
 import { env } from '../env.js'
 import { adaptarRascunhoParaRede } from '../modules/geracao/geracao.service.js'
+import { classificarAdaptacao, registrarConsumo } from '../modules/planos/planos.service.js'
 import { slidesDoJson, slidesParaJson } from '../modules/posts/posts.service.js'
 
 const QUEUE_NAME = 'preparar-redes'
@@ -81,6 +82,15 @@ export default fp(async (app: FastifyInstance) => {
         where: { id: saida.id },
         data: { caption: adaptado.caption, hashtags: adaptado.hashtags, slides: slidesParaJson(adaptado.slides), imagemStatus: 'pendente' },
       })
+      // A cota já foi conferida na criação do post (post + redes marcadas).
+      // Classifica na hora de registrar: se o usuário clicou "Adaptar" enquanto
+      // este job rodava, a dele já contou como adaptação e esta vira
+      // regeneração (sem cobrar a mesma rede duas vezes).
+      const perfil = await app.prisma.perfil.findUnique({ where: { id: post.perfilId }, select: { contaId: true } })
+      if (perfil) {
+        const classificacao = await classificarAdaptacao(app.prisma, postId, canal)
+        await registrarConsumo(app.prisma, { contaId: perfil.contaId, perfilId: post.perfilId, postId, canal, ...classificacao, ...adaptado.uso })
+      }
     },
     { connection: connection.duplicate() },
   )

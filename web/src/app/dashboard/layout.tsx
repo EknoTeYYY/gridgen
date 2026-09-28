@@ -1,13 +1,18 @@
 import Image from 'next/image'
 import { requireSession, serverFetch } from '@/lib/session'
-import type { Perfil } from '@/lib/types'
+import type { Perfil, UsoConta } from '@/lib/types'
 import { SidebarNav } from '@/components/dashboard/sidebar-nav'
 import { SidebarPerfisList } from '@/components/dashboard/sidebar-perfis-list'
 import { UserMenu } from '@/components/dashboard/user-menu'
+import { AvisoUsoBanner, UsoPlanoSidebar } from '@/components/dashboard/uso-plano'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession()
-  const perfis = await serverFetch<Perfil[]>('/perfis').catch(() => [])
+  const [perfis, uso] = await Promise.all([
+    serverFetch<Perfil[]>('/perfis').catch(() => []),
+    // Falha ao ler o uso não pode derrubar o dashboard — só esconde o resumo.
+    serverFetch<UsoConta>('/conta/uso').catch(() => null),
+  ])
 
   return (
     <div className="flex min-h-screen">
@@ -33,13 +38,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         <SidebarNav />
         <SidebarPerfisList perfis={perfis} />
+        {uso && <UsoPlanoSidebar uso={uso} />}
 
         <div className="mt-auto pt-2">
           <UserMenu nome={session.nome} email={session.email} isSuperAdmin={session.isSuperAdmin} />
         </div>
       </aside>
       <main className="flex-1 bg-background p-8">
-        <div className="mx-auto max-w-7xl">{children}</div>
+        <div className="mx-auto max-w-7xl">
+          {uso && <AvisoUsoBanner uso={uso} />}
+          {children}
+        </div>
       </main>
     </div>
   )

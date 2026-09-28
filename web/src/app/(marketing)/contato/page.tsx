@@ -1,8 +1,19 @@
+import { PLANOS, type PlanoId } from '@gridgen/shared'
 import { Card, CardContent } from '@/components/ui/card'
 import { SectionBackground } from '@/components/marketing/section-background'
 import { ContatoForm } from './contato-form'
 
-export default function ContatoPage() {
+// Vindo da página /planos (`?plano=profissional`), a mensagem já chega com o
+// plano de interesse preenchido — a pessoa só completa os dados de contato.
+export default async function ContatoPage({ searchParams }: { searchParams: Promise<{ plano?: string }> }) {
+  const { plano } = await searchParams
+  const mensagemInicial =
+    plano && plano in PLANOS
+      ? plano === 'piloto'
+        ? 'Tenho interesse no piloto gratuito do Gridgen.'
+        : `Tenho interesse no plano ${PLANOS[plano as PlanoId].nome}.`
+      : ''
+
   return (
     <div className="relative overflow-hidden">
       <SectionBackground />
@@ -17,7 +28,7 @@ export default function ContatoPage() {
 
         <Card className="mt-10">
           <CardContent>
-            <ContatoForm />
+            <ContatoForm mensagemInicial={mensagemInicial} />
           </CardContent>
         </Card>
       </div>
