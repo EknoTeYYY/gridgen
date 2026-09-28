@@ -37,6 +37,17 @@ const MAX_HASHTAGS_PADRAO = 5
 const AVISO_TELA_DE_TERCEIRO =
   'TAMBÉM NUNCA descreva a cena como "pessoa procurando/navegando/pesquisando um site ou app" nem peça "tela mostrando [nome de site/produto]" — bancos de imagem costumam devolver um print de tela de um site REAL nesses casos (achado real: um post sobre "caçar foto em banco de imagens" voltou com o próprio site do Pexels, e depois com o site de outro produto real, aparecendo legível na foto). Se a cena tiver celular/notebook/monitor, descreva um enquadramento onde a tela NÃO é o foco nem fica legível (mãos digitando, pessoa vista de lado/de costas, tela desfocada ou reflexo ao fundo) — nunca peça pra ver o conteúdo da tela.'
 
+// Orientação completa dos campos buscaImagem/buscaImagemPexels, escrita UMA
+// vez no system. Antes ela ia inteira na descrição do campo, repetida em cada
+// layout do `anyOf` do schema — medição real (27/09/2026): ~820 tokens por
+// cópia, 5 layouts por carrossel, ~3,3k tokens duplicados em toda geração
+// (~22% do custo do post). O schema agora só aponta pra cá.
+const ORIENTACAO_BUSCA_IMAGEM = `## Busca de imagem (campos buscaImagem e buscaImagemPexels)
+- buscaImagem: descreva em poucas palavras concretas que foto buscar como referência pro slide (ex.: "pessoa respondendo mensagem no celular à noite", "escritório vazio"). A ambientação com foto é o padrão esperado no carrossel, não a exceção: nos layouts em que o campo é obrigatório, sempre preencha; nos demais, preencha na quase totalidade dos slides e só deixe de fora em no MÁXIMO 1 ou 2 telas do carrossel inteiro, quando aquele conteúdo funcionar visivelmente melhor só com texto (ex.: uma lista rápida, um dado isolado).
+- A cena é sempre do dia a dia de quem cria/gerencia conteúdo e redes sociais (pessoa no celular, feed do Instagram, notebook mostrando posts, reunião de equipe) — NUNCA código de programação, tela de desenvolvedor ou jargão técnico de TI, mesmo quando o assunto do slide for uma funcionalidade técnica do Gridgen (achado real: "editar uma versão" virou foto de código HTML — a metáfora visual é sempre de marketing, nunca de programação).
+- ${AVISO_TELA_DE_TERCEIRO}
+- buscaImagemPexels: só preencha junto com buscaImagem — a MESMA ideia, mas em inglês e em 2 a 4 palavras-chave de banco de imagens (ex.: "busy office desk", "phone notification night"). Bancos como Pexels indexam majoritariamente em inglês; um termo em português busca mal lá. NUNCA inclua termos de programação/desenvolvimento (ex.: "code", "html", "programming", "developer"). NUNCA inclua palavras como "website", "search", "browsing", "stock photo" ou nome de site/produto (ex.: "pexels", "google", "instagram app") — esses termos tendem a devolver um print de tela de um site de verdade, vazando marca de terceiro na foto do cliente.`
+
 function schemaDoCampo(campo: CampoSlide): Record<string, unknown> {
   const descricao = campo.direcaoIA ?? campo.label
   if (campo.tipo === 'lista') {
@@ -90,16 +101,17 @@ function schemaParaLayout(
     required.push(campo.nome)
   }
   if (sugerirImagem && camposLayout.some((c) => c.tipo === 'foto')) {
+    // Descrição curta de propósito: a orientação completa está uma vez só no
+    // system (ORIENTACAO_BUSCA_IMAGEM), não repetida em cada layout.
     properties.buscaImagem = {
       type: 'string',
       description: exigirImagem
-        ? 'Descreva em poucas palavras concretas que foto buscar como referência pra esse slide (ex.: "pessoa respondendo mensagem no celular à noite", "escritório vazio") — esse layout sempre carrega uma foto, não deixe de preencher. IMPORTANTE: a cena é sempre do dia a dia de quem cria/gerencia conteúdo e redes sociais (pessoa no celular, feed do Instagram, notebook mostrando posts, reunião de equipe) — NUNCA código de programação, tela de desenvolvedor ou jargão técnico de TI, mesmo quando o assunto do slide for uma funcionalidade técnica do Gridgen (achado real: "editar uma versão" virou foto de código HTML — a metáfora visual é sempre de marketing, nunca de programação). ' + AVISO_TELA_DE_TERCEIRO
-        : 'Descreva em poucas palavras concretas que foto buscar como referência pra esse slide (ex.: "pessoa respondendo mensagem no celular à noite", "escritório vazio") — a ambientação com foto é o padrão esperado neste carrossel, não a exceção; preencha na quase totalidade dos slides. Só deixe de fora em no MÁXIMO 1 ou 2 telas do carrossel inteiro, e só quando aquele conteúdo específico funcionar visivelmente melhor só com texto (ex.: uma lista rápida, um dado isolado). IMPORTANTE: a cena é sempre do dia a dia de quem cria/gerencia conteúdo e redes sociais (pessoa no celular, feed do Instagram, notebook mostrando posts, reunião de equipe) — NUNCA código de programação, tela de desenvolvedor ou jargão técnico de TI, mesmo quando o assunto do slide for uma funcionalidade técnica do Gridgen (achado real: "editar uma versão" virou foto de código HTML — a metáfora visual é sempre de marketing, nunca de programação). ' + AVISO_TELA_DE_TERCEIRO,
+        ? 'Obrigatório neste layout (ele sempre carrega uma foto): que foto buscar pra esse slide, em poucas palavras concretas. Siga a seção "Busca de imagem" das instruções.'
+        : 'Que foto buscar pra esse slide, em poucas palavras concretas — esperado na quase totalidade dos slides. Siga a seção "Busca de imagem" das instruções.',
     }
     properties.buscaImagemPexels = {
       type: 'string',
-      description:
-        'Só preencha junto com `buscaImagem` — a MESMA ideia, mas em inglês e em 2 a 4 palavras-chave de banco de imagens (ex.: "busy office desk", "phone notification night"). Bancos como Pexels indexam majoritariamente em inglês; um termo em português busca mal lá. NUNCA inclua termos de programação/desenvolvimento (ex.: "code", "html", "programming", "developer") — mesma restrição do campo buscaImagem, a cena é sempre de marketing/redes sociais. NUNCA inclua palavras como "website", "search", "browsing", "stock photo" ou nome de site/produto (ex.: "pexels", "google", "instagram app") — esses termos tendem a devolver um print de tela de um site de verdade, vazando marca de terceiro na foto do cliente.',
+      description: 'A mesma ideia de buscaImagem, em inglês, 2 a 4 palavras-chave de banco de imagens. Siga a seção "Busca de imagem" das instruções.',
     }
     if (exigirImagem) required.push('buscaImagem', 'buscaImagemPexels')
   }
@@ -373,6 +385,7 @@ async function chamarClaudeEExtrair(
   prompt: string,
   mesclarSlides: (gerados: unknown) => Slide[],
   maxHashtags: number,
+  cachearPrefixo = false,
 ): Promise<RascunhoGerado> {
   const claude = getClaude()
   const resposta = await claude.messages.create({
@@ -381,7 +394,13 @@ async function chamarClaudeEExtrair(
     // 2000 tokens o JSON truncava em posts com muitos cards (campos ausentes ->
     // 502). 8000 cobre o pior caso; para no end_turn bem antes em posts curtos.
     max_tokens: 8000,
-    system,
+    // Breakpoint no fim do system cobre tool + system (ordem de render da API:
+    // tools → system → messages) — só o pedido do post fica de fora. Só vale
+    // ligar quando vêm várias gerações seguidas do mesmo Perfil e tipo em menos
+    // de 5 min (lote do calendário): numa geração avulsa, a escrita do cache
+    // custa 1,25x a entrada e quase nunca é lida, então encarece em vez de
+    // economizar.
+    system: cachearPrefixo ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system,
     messages: [{ role: 'user', content: prompt }],
     tools: [ferramenta],
     tool_choice: { type: 'tool', name: ferramenta.name },
@@ -430,8 +449,11 @@ function linhaGanchos(): string {
   return `Banco de ganchos disponível como inspiração pra abertura/capa (selecione com critério pro contexto desta marca — nunca sorteie, nunca é obrigatório usar um daqui, nunca repita o mesmo em posts seguidos; histórias/erros/experimentos citados precisam ter base real no contexto/briefing, nunca virar fato inventado):\n${banco}\nNunca abra com um padrão de resposta automática genérica — proibido "${GANCHOS_PROIBIDOS.join('", "')}" ou variações óbvias disso. Crie identificação, curiosidade, tensão pertinente, opinião sustentada ou pergunta que interesse ao público; o recorte precisa ser específico do assunto, nunca genérico.`
 }
 
-function systemComContexto(instrucao: string, contextoMarkdown: string): string {
-  return `${instrucao} ${REGRAS_FIXAS_DE_ESCRITA}\n\n## Contexto da marca\n${contextoMarkdown || '(nenhum contexto registrado ainda pra este Perfil — escreva de forma genérica, mas profissional)'}`
+// `secoesFixas` entram antes do contexto da marca: são texto estático (igual
+// pra todo Perfil), então ficam dentro do prefixo cacheável junto com a tool.
+function systemComContexto(instrucao: string, contextoMarkdown: string, secoesFixas: string[] = []): string {
+  const fixas = secoesFixas.length > 0 ? `\n\n${secoesFixas.join('\n\n')}` : ''
+  return `${instrucao} ${REGRAS_FIXAS_DE_ESCRITA}${fixas}\n\n## Contexto da marca\n${contextoMarkdown || '(nenhum contexto registrado ainda pra este Perfil — escreva de forma genérica, mas profissional)'}`
 }
 
 export async function gerarRascunhoComIA(
@@ -442,6 +464,8 @@ export async function gerarRascunhoComIA(
   estilo: EstiloVisual = 'padrao',
   temaAlternativo: Tema = 'ink',
   metodoConversao?: MetodoConversao,
+  // Liga o prompt caching — só pra quem gera em lote (ver `chamarClaudeEExtrair`).
+  opcoes: { cachearPrefixo?: boolean } = {},
 ): Promise<RascunhoGerado> {
   const receita = receitaDe(tipo)
   // No estilo "padrao", a contagem de telas é flexível dentro de
@@ -470,9 +494,10 @@ export async function gerarRascunhoComIA(
   // usuário na pasta "Prova Social" da Galeria — nunca uma foto de banco de
   // imagens fingindo ser evidência (regra explícita do doc editorial).
   const layoutsComImagemObrigatoria = flexivel ? [...new Set([receita.capa.layout, 'photo' as const])] : []
+  const sugerirImagem = tipo !== 'prova_social'
   const ferramenta = montarFerramentaGeracao(tipo, layoutsDistintos, {
     incluirNome: !nomeManual,
-    sugerirImagem: tipo !== 'prova_social',
+    sugerirImagem,
     layoutsComImagemObrigatoria,
     metodoConversao,
     ...(flexivel ? { minTelas: receita.minTelas, maxTelas: receita.maxTelas } : {}),
@@ -489,7 +514,6 @@ export async function gerarRascunhoComIA(
     receita.nota ? `Como usar essa receita: ${receita.nota}` : null,
     `Chamada pra ação: ${receita.cta}`,
     `Como esse tipo deveria se destacar na grade do perfil: ${receita.naGrade}`,
-    estilo !== 'grafico' ? linhaGanchos() : null,
     briefing ? `Pedido específico pra este post: ${briefing}` : null,
     !nomeManual
       ? 'Sugira também um nome curto pro post (ver descrição do campo "nomePost") — específico o suficiente pra reconhecer esse post entre outros do mesmo tipo.'
@@ -498,14 +522,17 @@ export async function gerarRascunhoComIA(
     .filter(Boolean)
     .join('\n')
 
+  // Banco de ganchos (~1,7k tokens, estático) e orientação de imagem vão no
+  // system, não no pedido do post — assim entram no prefixo cacheável.
   const system = systemComContexto(
     'Você escreve o conteúdo de posts de Instagram pra uma marca, seguindo o contexto de marca abaixo e respeitando os limites de caracteres de cada campo (descritos na ferramenta).',
     contextoMarkdown,
+    [estilo !== 'grafico' ? `## Ganchos\n${linhaGanchos()}` : null, sugerirImagem ? ORIENTACAO_BUSCA_IMAGEM : null].filter((s): s is string => s !== null),
   )
   const mesclarSlides = flexivel
     ? (gerados: unknown) => mesclarConteudoFlexivel(tipo, layoutsDistintos, receita.minTelas, receita.maxTelas, receita.capa.layout, gerados)
     : (gerados: unknown) => mesclarConteudoNaSkeleton(montarSlidesPadrao(tipo, estilo, temaAlternativo), gerados)
-  const resultado = await chamarClaudeEExtrair(ferramenta, system, prompt, mesclarSlides, MAX_HASHTAGS_PADRAO)
+  const resultado = await chamarClaudeEExtrair(ferramenta, system, prompt, mesclarSlides, MAX_HASHTAGS_PADRAO, opcoes.cachearPrefixo)
   // Título travado em "Feedback" (doc editorial) — nunca aceito da IA, nem
   // pedido a ela: sobrescreve o que quer que tenha vindo no schema genérico
   // de `photo`.
