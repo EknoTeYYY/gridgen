@@ -108,11 +108,29 @@ model User {
   updatedAt    DateTime @updatedAt
 
   conta           Conta          @relation(fields: [contaId], references: [id], onDelete: Cascade)
-  refreshTokens   RefreshToken[]
-  convitesCriados ConviteConta[]
+  refreshTokens     RefreshToken[]
+  convitesCriados   ConviteConta[]
+  redefinicoesSenha RedefinicaoSenha[]
 
   @@index([contaId])
   @@map("users")
+}
+
+// "Esqueci minha senha": link de uso único enviado por e-mail. Mesmo padrão
+// do convite — só o hash do token fica no banco. `usadoEm` marca o link como
+// gasto (usado de verdade, ou invalidado por um pedido mais novo).
+model RedefinicaoSenha {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usadoEm   DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("redefinicoes_senha")
 }
 
 // Convite de acesso a uma Conta (agência) criada por um superadmin — o

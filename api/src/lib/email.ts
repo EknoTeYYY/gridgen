@@ -103,6 +103,26 @@ export async function enviarConviteConta(params: { email: string; contaNome: str
   if (error) throw new Error(`falha ao enviar e-mail via Resend: ${error.message}`)
 }
 
+export async function enviarRedefinicaoSenha(params: { email: string; nome: string; link: string; validadeMinutos: number }): Promise<void> {
+  const resend = getResend()
+  const html = montarEmail({
+    preheader: 'Link para redefinir sua senha do Gridgen',
+    titulo: 'Redefinir sua senha',
+    corpoHtml: `<p style="margin:0 0 12px 0;">Olá, ${esc(params.nome)}. Recebemos um pedido para redefinir a senha da sua conta no Gridgen.</p><p style="margin:0;">Clique no botão abaixo para escolher uma nova senha.</p>`,
+    ctaTexto: 'Redefinir senha',
+    ctaLink: params.link,
+    rodape: `Este link vale por ${params.validadeMinutos} minutos e só pode ser usado uma vez. Se você não pediu a redefinição, ignore este e-mail: sua senha continua a mesma.`,
+  })
+  const { error } = await resend.emails.send({
+    from: env.EMAIL_FROM,
+    to: params.email,
+    subject: 'Redefinir sua senha do Gridgen',
+    html,
+    text: `Recebemos um pedido para redefinir a senha da sua conta no Gridgen.\nEscolha uma nova senha: ${params.link}\nO link vale por ${params.validadeMinutos} minutos. Se você não pediu, ignore este e-mail.`,
+  })
+  if (error) throw new Error(`falha ao enviar e-mail via Resend: ${error.message}`)
+}
+
 // Publicação em si é manual (decisão de produto — ver comentário de
 // `Post.agendadoPara`): este e-mail é o "empurrão" na hora certa pra alguém
 // abrir o post, baixar as imagens e copiar a legenda. `agendadoPara` nasce de
