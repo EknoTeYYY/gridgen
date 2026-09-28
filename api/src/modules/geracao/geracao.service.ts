@@ -586,7 +586,10 @@ export async function adaptarRascunhoParaRede(
     `Tom geral do post (mantenha a essência, adapte a voz): ${receita.tom}`,
     receita.nota ? `Como essa receita foi pensada pra funcionar (preserve a lógica ao reescrever): ${receita.nota}` : null,
     `Conteúdo atual do post, como referência pra adaptar (não copie literalmente):`,
-    JSON.stringify(slidesAtuais),
+    // Sem `photoDataUri`: é a foto em base64 (achado real: 1,29 milhão de
+    // tokens num post com fotos automáticas, recusado por passar do limite do
+    // modelo). A IA só precisa do texto; a foto volta pelo esqueleto na mescla.
+    JSON.stringify(slidesAtuais.map(({ photoDataUri: _foto, ...slide }) => slide)),
   ]
     .filter(Boolean)
     .join('\n')
