@@ -23,8 +23,9 @@ export default function TermosPage() {
       <div className="mt-10 flex flex-col gap-10">
         <Secao titulo="1. Aceite">
           <p>
-            Ao criar uma conta no Gridgen, produto operado pela eknotech, você concorda com estes Termos de Uso e com
-            a nossa Política de Privacidade. Se não concordar, não utilize a plataforma.
+            Ao criar uma conta no Gridgen, produto operado pela Eknotech, inscrita no CNPJ 61.848.674/0001-35, com
+            sede em Florianópolis/SC, você concorda com estes Termos de Uso e com a nossa Política de Privacidade. Se
+            não concordar, não utilize a plataforma.
           </p>
         </Secao>
 
@@ -105,8 +106,8 @@ export default function TermosPage() {
 
         <Secao titulo="11. Lei aplicável">
           <p>
-            Estes termos são regidos pelas leis do Brasil. Fica eleito o foro do domicílio da eknotech pra dirimir
-            qualquer controvérsia, salvo disposição legal em contrário.
+            Estes termos são regidos pelas leis do Brasil. Fica eleito o foro da comarca de Florianópolis/SC para
+            dirimir qualquer controvérsia, salvo disposição legal em contrário.
           </p>
         </Secao>
 

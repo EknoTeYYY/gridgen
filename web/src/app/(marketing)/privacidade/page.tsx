@@ -24,8 +24,9 @@ export default function PrivacidadePage() {
       <div className="mt-10 flex flex-col gap-10">
         <Secao titulo="1. Quem somos">
           <p>
-            O Gridgen é operado pela eknotech, responsável pelo tratamento dos dados descritos nesta política
-            (controladora, nos termos da Lei Geral de Proteção de Dados, a LGPD).
+            O Gridgen é operado pela Eknotech, inscrita no CNPJ 61.848.674/0001-35, com sede em Florianópolis/SC,
+            responsável pelo tratamento dos dados descritos nesta política (controladora, nos termos da Lei Geral de
+            Proteção de Dados, a LGPD).
           </p>
         </Secao>
 
@@ -111,10 +112,14 @@ export default function PrivacidadePage() {
           </p>
         </Secao>
 
-        <Secao titulo="9. Contato">
+        <Secao titulo="9. Contato e encarregado de dados">
           <p>
-            Dúvidas sobre esta política ou sobre o tratamento dos seus dados podem ser enviadas pelos canais de
-            contato da eknotech em{' '}
+            O encarregado pelo tratamento de dados pessoais (DPO) é Erick de Souza, que atende pelo e-mail{' '}
+            <a href="mailto:erickdesouza.contato@gmail.com" className="text-primary hover:underline">
+              erickdesouza.contato@gmail.com
+            </a>
+            . Pedidos sobre os seus direitos como titular (acesso, correção, exclusão, portabilidade) e dúvidas sobre
+            esta política podem ser enviados para esse endereço ou pelos canais de contato da Eknotech em{' '}
             <a href="https://eknotech.com.br" target="_blank" rel="noreferrer" className="text-primary hover:underline">
               eknotech.com.br
             </a>
