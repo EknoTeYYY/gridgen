@@ -48,9 +48,9 @@ function candidataDoJob(dados: CampanhaCandidata): CampanhaCandidata {
 }
 
 // Datas sazonais (curadas e personalizadas) só entram na fila se o plano tem
-// o calendário com IA (Profissional pra cima, decisão de 28/09/2026 — senão
-// a varredura gastaria sozinha as gerações do Piloto/Essencial) e se a conta
-// ainda tem cota no ciclo. Sem isso o job nasceria só pra ser barrado — e,
+// o calendário com IA (Essencial pra cima — senão a varredura gastaria sozinha
+// as gerações do Piloto, que não inclui o recurso) e se a conta ainda tem cota
+// no ciclo. Sem isso o job nasceria só pra ser barrado — e,
 // com o jobId fixo por ocorrência, um job concluído impediria a data de
 // voltar no dia seguinte, depois de um pacote extra, da virada do ciclo ou de
 // um upgrade. Pautas de mês aprovado passam sempre: o plano e a cota delas

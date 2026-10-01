@@ -3,6 +3,7 @@ import {
   PLANOS,
   REGENERACOES_GRATIS_POR_POST,
   nivelDeUso,
+  planoDeEntradaComRecurso,
   recomendarUpgrade,
   type PlanoId,
   type RedeSocial,
@@ -129,7 +130,8 @@ export async function exigirCotaDeGeracoes(prisma: PrismaClient, contaId: string
   return uso
 }
 
-// Recursos que são diferencial do Profissional pra cima (flags em `Plano`).
+// Recursos que são diferencial dos planos pagos (flags em `Plano`). O plano de
+// entrada de cada um sai de `planoDeEntradaComRecurso` — não chumbar aqui.
 const NOME_DO_RECURSO = {
   calendarioMensal: 'O calendário mensal com IA',
   adaptacaoRedes: 'A adaptação para LinkedIn e TikTok',
@@ -142,7 +144,7 @@ export async function exigirRecursoDoPlano(prisma: PrismaClient, contaId: string
   if (!PLANOS[uso.plano][recurso]) {
     throw new CotaError(
       'RECURSO_DO_PLANO',
-      `${NOME_DO_RECURSO[recurso]} está disponível a partir do plano ${PLANOS.profissional.nome}. Mude de plano para usar.`,
+      `${NOME_DO_RECURSO[recurso]} está disponível a partir do plano ${planoDeEntradaComRecurso(recurso).nome}. Mude de plano para usar.`,
       uso,
     )
   }

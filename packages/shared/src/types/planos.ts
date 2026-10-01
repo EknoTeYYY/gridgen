@@ -22,7 +22,7 @@ export interface Plano {
   geracoesMes: number | null
   destaque?: boolean
   // Calendário mensal com IA (a IA propõe o mês inteiro e gera tudo na
-  // aprovação): diferencial do Profissional pra cima.
+  // aprovação): incluído do Essencial pra cima.
   calendarioMensal: boolean
   // Adaptação do post pra LinkedIn e TikTok (cada adaptação é mais 1
   // geração): também do Profissional pra cima.
@@ -46,18 +46,18 @@ export const PLANOS: Record<PlanoId, Plano> = {
     id: 'essencial',
     nome: 'Essencial',
     publico: 'Para pequenas empresas com uma marca',
-    precoMensal: 149,
+    precoMensal: 229,
     perfis: 1,
     geracoesMes: 30,
-    calendarioMensal: false,
+    calendarioMensal: true,
     adaptacaoRedes: false,
-    recursos: ['1 Perfil', '30 gerações por mês', 'Implantação assistida'],
+    recursos: ['1 Perfil', '30 gerações por mês', 'Calendário mensal com IA', 'Implantação assistida'],
   },
   profissional: {
     id: 'profissional',
     nome: 'Profissional',
     publico: 'Para social medias e freelancers',
-    precoMensal: 397,
+    precoMensal: 597,
     perfis: 5,
     geracoesMes: 120,
     destaque: true,
@@ -69,7 +69,7 @@ export const PLANOS: Record<PlanoId, Plano> = {
     id: 'agencia',
     nome: 'Agência',
     publico: 'Para agências com carteira de clientes',
-    precoMensal: 897,
+    precoMensal: 1297,
     perfis: 15,
     geracoesMes: 400,
     calendarioMensal: true,
@@ -92,6 +92,17 @@ export const PLANOS: Record<PlanoId, Plano> = {
 // Escada de upgrade (do menor pro maior). Piloto e sob medida ficam fora: o
 // piloto recomenda um plano de entrada; acima da Agência, só proposta.
 export const PLANOS_EM_ORDEM: PlanoId[] = ['essencial', 'profissional', 'agencia']
+
+// Menor plano da escada que inclui um recurso (flag). As mensagens de "faça
+// upgrade pra ter X" (api e dashboard) usam isto pra sempre nomear o plano de
+// entrada certo — ex.: o calendário agora começa no Essencial; a adaptação de
+// redes ainda no Profissional. Sem isto, as cópias chumbariam "Profissional".
+export function planoDeEntradaComRecurso(recurso: 'calendarioMensal' | 'adaptacaoRedes'): Plano {
+  for (const id of PLANOS_EM_ORDEM) {
+    if (PLANOS[id][recurso]) return PLANOS[id]
+  }
+  return PLANOS.profissional
+}
 
 export const PACOTE_EXTRA = { geracoes: 50, preco: 129 }
 export const PERFIL_EXTRA_PRECO = 59
