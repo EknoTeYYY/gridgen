@@ -188,12 +188,25 @@ export function PostProntoDetalhe({
 
   return (
     <div className={cn('flex flex-col gap-6', dentroDeModal && 'h-full min-h-0')}>
-      <div className="flex shrink-0 items-start justify-between gap-4">
-        <div>
-          {titulo && <h2 className="text-xl font-semibold tracking-tight">{titulo}</h2>}
-          {subtitulo && <p className="text-sm text-muted-foreground">{subtitulo}</p>}
+      {/* Abaixo de lg o cabeçalho empilha (título em cima, ações quebrando
+          linha embaixo) — em linha única os 4-5 botões estouravam a largura
+          do celular. O "fechar" da modal ganha uma cópia ao lado do título
+          nesse caso, pra continuar no canto de cima em vez de ir parar no
+          meio da fileira de ações. */}
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            {titulo && <h2 className="text-xl font-semibold tracking-tight break-words">{titulo}</h2>}
+            {subtitulo && <p className="text-sm text-muted-foreground">{subtitulo}</p>}
+          </div>
+          {onFechar && (
+            <Button type="button" variant="ghost" size="icon" onClick={onFechar} className="-mt-1 -mr-2 shrink-0 lg:hidden">
+              <X />
+              <span className="sr-only">Fechar</span>
+            </Button>
+          )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:flex-nowrap">
           <Badge className="gap-1 border-transparent bg-emerald-600/15 text-emerald-700 dark:text-emerald-400">
             {STATUS_LABEL[post.status]}
           </Badge>
@@ -227,7 +240,7 @@ export function PostProntoDetalhe({
             <ExcluirPostButton perfilId={perfilId} postId={post.id} titulo={post.slug} onExcluido={onExcluido} />
           )}
           {onFechar && (
-            <Button type="button" variant="ghost" size="icon" onClick={onFechar}>
+            <Button type="button" variant="ghost" size="icon" onClick={onFechar} className="hidden lg:inline-flex">
               <X />
               <span className="sr-only">Fechar</span>
             </Button>
@@ -238,11 +251,14 @@ export function PostProntoDetalhe({
       <div
         className={cn(
           'grid grid-cols-1 gap-6 lg:grid-cols-2',
-          dentroDeModal && 'min-h-0 flex-1 overflow-hidden',
+          // Rolagem independente por coluna só no desktop (2 colunas lado a
+          // lado). Numa coluna só (mobile), a grade inteira rola — senão a
+          // segunda coluna ficava cortada pelo overflow-hidden.
+          dentroDeModal && 'min-h-0 flex-1 overflow-y-auto lg:overflow-hidden',
         )}
       >
         {/* Esquerda: imagens + legenda geral */}
-        <div className={cn('flex flex-col gap-4', dentroDeModal && 'min-h-0 overflow-y-auto pr-1')}>
+        <div className={cn('flex flex-col gap-4', dentroDeModal && 'lg:min-h-0 lg:overflow-y-auto lg:pr-1')}>
           <CarrosselImagens postId={post.id} imagens={imagens} />
 
           <Card>
@@ -263,7 +279,7 @@ export function PostProntoDetalhe({
         </div>
 
         {/* Direita: aviso de publicação, redes */}
-        <div className={cn('flex flex-col gap-4', dentroDeModal && 'min-h-0 overflow-y-auto pr-1')}>
+        <div className={cn('flex flex-col gap-4', dentroDeModal && 'lg:min-h-0 lg:overflow-y-auto lg:pr-1')}>
           <Card>
             <CardHeader className="space-y-0">
               <div className="flex flex-wrap items-center gap-2">

@@ -133,7 +133,7 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
         <CardHeader>
           <CardTitle>Informações básicas</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nome">Nome</Label>
             <Input id="nome" {...register('nome')} />
@@ -165,7 +165,7 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
           <CardTitle>Contato</CardTitle>
           <CardDescription>Dados de quem esse Perfil representa — não aparece no conteúdo gerado.</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="telefoneContato">Telefone</Label>
             <Controller
@@ -236,14 +236,14 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
           <CardDescription>Cores e tema usados pelo motor de render em todo conteúdo deste perfil.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <CampoCorControlado name="corPrimaria" label="Cor primária" control={control} />
             <CampoCorControlado name="corSecundaria" label="Cor secundária" control={control} />
             <CampoCorControlado name="corFundo" label="Fundo (tema escuro)" control={control} />
             <CampoCorControlado name="corTexto" label="Texto (tema escuro)" control={control} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <LabelComDica
                 htmlFor="temaPadrao"

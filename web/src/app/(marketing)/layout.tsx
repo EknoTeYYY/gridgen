@@ -1,6 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { MobileSiteMenu } from './mobile-menu'
 import { NavDropdowns } from './site-nav'
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -25,21 +27,21 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             marca no hover (IDV Eknotech, seção 6.1). Medidas replicadas do
             NavBar.css real da eknotech: largura 92%/1100px, raio 12px,
             padding 12px 24px (a altura nasce do conteúdo, não é fixa). */}
-        <div className="mx-auto flex w-[92%] max-w-[1100px] items-center justify-between rounded-[12px] border border-border bg-transparent px-6 py-3 shadow-lg shadow-black/5 backdrop-blur-xl transition-colors max-md:w-[calc(100%-32px)] max-md:px-3.5 max-md:py-2.5 max-[480px]:w-[calc(100%-24px)] max-[480px]:px-3 max-[480px]:py-2 hover:border-violet-600/20 hover:bg-background/30">
-          <Link href="/" className="flex items-center">
+        <div className="mx-auto flex w-[92%] max-w-[1100px] items-center justify-between gap-2 rounded-[12px] border border-border bg-transparent px-6 py-3 shadow-lg shadow-black/5 backdrop-blur-xl transition-colors max-md:w-[calc(100%-32px)] max-md:px-3.5 max-md:py-2.5 max-[480px]:w-[calc(100%-24px)] max-[480px]:px-3 max-[480px]:py-2 hover:border-violet-600/20 hover:bg-background/30">
+          <Link href="/" className="flex shrink-0 items-center">
             <Image
               src="/gridgen-wordmark-roxo.png"
               alt="Gridgen"
               width={227}
               height={52}
-              className="h-9 w-auto max-md:h-8 max-[480px]:h-7 dark:hidden"
+              className="h-9 w-auto max-md:h-8 max-[480px]:h-6 dark:hidden"
             />
             <Image
               src="/gridgen-wordmark-branco.png"
               alt="Gridgen"
               width={227}
               height={52}
-              className="hidden h-9 w-auto max-md:h-8 max-[480px]:h-7 dark:block"
+              className="hidden h-9 w-auto max-md:h-8 max-[480px]:h-6 dark:block"
             />
           </Link>
           <div className="hidden items-center gap-7 max-lg:gap-5 sm:flex">
@@ -48,12 +50,18 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <NavLink href="/planos">Planos</NavLink>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+            <Link href="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'max-sm:hidden')}>
               Entrar
             </Link>
-            <Link href="/contato" className={buttonVariants({ variant: 'cta' })}>
+            {/* CTA um pouco mais compacto no celular pra caber ao lado da logo
+                e do botão de menu (em 360px encostava na logo). */}
+            <Link
+              href="/contato"
+              className={cn(buttonVariants({ variant: 'cta' }), 'max-[480px]:!px-3 max-[480px]:!py-1.5 max-[480px]:!text-sm')}
+            >
               Fale com a gente
             </Link>
+            <MobileSiteMenu />
           </div>
         </div>
       </header>
@@ -75,7 +83,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 />
                 <span>produção de conteúdo em massa pra redes sociais.</span>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
                 <Link href="/como-funciona" className="hover:text-foreground">
                   Como funciona
                 </Link>

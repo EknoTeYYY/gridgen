@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Check, Lightbulb, Minus } from 'lucide-react'
 import {
   PACOTE_EXTRA,
@@ -32,6 +33,20 @@ function precoDoPlano(id: PlanoId): string {
   if (preco === null) return 'Sob consulta'
   if (preco === 0) return 'Grátis'
   return `R$ ${preco.toLocaleString('pt-BR')}/mês`
+}
+
+// Linhas da comparação — as mesmas na tabela (md+) e nos cartões do celular.
+const LINHAS: { rotulo: string; valor: (id: PlanoId) => string | number | boolean }[] = [
+  { rotulo: 'Perfis', valor: (id) => PLANOS[id].perfis ?? 'Sob medida' },
+  { rotulo: 'Gerações por mês', valor: (id) => PLANOS[id].geracoesMes ?? 'Sob medida' },
+  { rotulo: 'Calendário mensal com IA', valor: (id) => PLANOS[id].calendarioMensal },
+  { rotulo: 'Implantação assistida', valor: () => true },
+]
+
+function ValorCelula({ v }: { v: string | number | boolean }) {
+  if (v === true) return <Check className="size-4 text-violet-500" aria-label="Incluído" />
+  if (v === false) return <Minus className="size-4 text-muted-foreground/50" aria-label="Não incluído" />
+  return <span className="tabular-nums">{v}</span>
 }
 
 function Medidor({
@@ -103,7 +118,7 @@ export default async function PlanoPage() {
       {/* Um painel só: o que o cliente tem, quanto já usou e o que fazer agora.
           Recomendação e extras ficam dentro dele, no contexto do consumo. */}
       <Card className="gap-0 overflow-hidden py-0">
-        <CardContent className="flex flex-col gap-6 p-6">
+        <CardContent className="flex flex-col gap-6 p-4 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">Seu plano</p>
@@ -126,7 +141,7 @@ export default async function PlanoPage() {
         </CardContent>
 
         {recomendacao && (
-          <div className="flex flex-col gap-3 border-t bg-violet-500/5 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t bg-violet-500/5 px-4 py-4 sm:flex-row sm:px-6 sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <Lightbulb className="mt-0.5 size-4 shrink-0 text-violet-500" />
               <p className="text-sm">{recomendacao.motivo}</p>
@@ -150,7 +165,7 @@ export default async function PlanoPage() {
         )}
 
         {uso.plano !== 'sob_medida' && (
-          <div className="flex flex-col gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:px-6 sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">Precisa de mais sem mudar de plano?</p>
             <div className="flex flex-wrap gap-2">
               <SolicitarButton variant="outline" pedido={{ tipo: 'pacote' }}>
@@ -172,7 +187,48 @@ export default async function PlanoPage() {
           <p className="text-sm text-muted-foreground">Mudanças de plano são confirmadas pelo time comercial da Eknotech.</p>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border">
+        {/* Celular: um cartão por plano (a tabela de 5 colunas só cabia
+            rolando de lado). */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {COLUNAS.map((id) => {
+            const atual = id === uso.plano
+            const acima =
+              // Mesma regra da linha de ações da tabela abaixo.
+              uso.plano !== 'sob_medida' && (id === 'sob_medida' || PLANOS_EM_ORDEM.indexOf(id) > indiceAtual)
+            return (
+              <div key={id} className={cn('flex flex-col gap-3 rounded-xl border p-4', atual && 'border-violet-500/40 bg-violet-500/5')}>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{PLANOS[id].nome}</span>
+                    {atual && <span className="rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-medium text-white">Seu plano</span>}
+                  </div>
+                  <div className="mt-0.5 text-sm text-muted-foreground">{precoDoPlano(id)}</div>
+                </div>
+                <dl className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 text-sm">
+                  {LINHAS.map((linha) => (
+                    <Fragment key={linha.rotulo}>
+                      <dt className="text-muted-foreground">{linha.rotulo}</dt>
+                      <dd className="flex justify-end">
+                        <ValorCelula v={linha.valor(id)} />
+                      </dd>
+                    </Fragment>
+                  ))}
+                </dl>
+                {acima && (
+                  <SolicitarButton
+                    variant={PLANOS[id].destaque ? 'default' : 'outline'}
+                    className="w-full"
+                    pedido={id === 'sob_medida' ? { tipo: 'sob_medida' } : { tipo: 'plano', planoId: id as 'essencial' | 'profissional' | 'agencia' }}
+                  >
+                    {id === 'sob_medida' ? 'Pedir proposta' : `Mudar para ${PLANOS[id].nome}`}
+                  </SolicitarButton>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-xl border md:block">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b">
@@ -189,10 +245,9 @@ export default async function PlanoPage() {
               </tr>
             </thead>
             <tbody className="[&_tr:not(:last-child)]:border-b">
-              <Linha rotulo="Perfis" atual={uso.plano} valor={(id) => PLANOS[id].perfis ?? 'Sob medida'} />
-              <Linha rotulo="Gerações por mês" atual={uso.plano} valor={(id) => PLANOS[id].geracoesMes ?? 'Sob medida'} />
-              <Linha rotulo="Calendário mensal com IA" atual={uso.plano} valor={(id) => PLANOS[id].calendarioMensal} />
-              <Linha rotulo="Implantação assistida" atual={uso.plano} valor={() => true} />
+              {LINHAS.map((linha) => (
+                <Linha key={linha.rotulo} rotulo={linha.rotulo} atual={uso.plano} valor={linha.valor} />
+              ))}
               {/* Linha de ações só existe quando há plano acima do atual — no
                   topo da escada (sob medida) ela ficaria vazia. */}
               {uso.plano !== 'sob_medida' && (
@@ -232,13 +287,7 @@ function Linha({ rotulo, atual, valor }: { rotulo: string; atual: PlanoId; valor
         const v = valor(id)
         return (
           <td key={id} className={cn('p-4', id === atual && 'bg-violet-500/5')}>
-            {v === true ? (
-              <Check className="size-4 text-violet-500" aria-label="Incluído" />
-            ) : v === false ? (
-              <Minus className="size-4 text-muted-foreground/50" aria-label="Não incluído" />
-            ) : (
-              <span className="tabular-nums">{v}</span>
-            )}
+            <ValorCelula v={v} />
           </td>
         )
       })}

@@ -186,7 +186,7 @@ export function PostsGrid({ perfilId, posts }: { perfilId: string; posts: Post[]
 
       <Dialog open={abertoId !== null} onOpenChange={(aberto) => !aberto && fechar()}>
         <DialogContent
-          className="flex h-[85vh] max-h-[85vh] flex-col overflow-hidden sm:max-w-6xl"
+          className="flex h-[90dvh] max-h-[90dvh] flex-col overflow-hidden sm:h-[85vh] sm:max-h-[85vh] sm:max-w-6xl"
           showCloseButton={false}
         >
           <DialogTitle className="sr-only">Detalhes do post</DialogTitle>

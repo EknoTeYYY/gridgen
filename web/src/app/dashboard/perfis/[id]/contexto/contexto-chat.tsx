@@ -112,7 +112,7 @@ export function ContextoChat({
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="flex h-[34rem] flex-col gap-4 rounded-[28px] border border-border/60 bg-card p-6 shadow-lg shadow-black/5">
+      <div className="flex h-[34rem] flex-col gap-4 rounded-[28px] border border-border/60 bg-card p-4 shadow-lg shadow-black/5 sm:p-6">
         <div className="flex-1 space-y-4 overflow-y-auto pr-1">
           {mensagensExibidas.map((m) => (
             <div key={m.id} className={cn('flex gap-2', m.role === 'user' && 'flex-row-reverse')}>

@@ -32,7 +32,10 @@ export function TiposDeConteudo({
 
   return (
     <div className="flex w-full flex-col items-center">
-      <div className="flex items-center gap-1 rounded-full border p-1">
+      {/* No celular as 4 abas (~490px) não cabem em 393px: o trilho rola na
+          horizontal (scrollbar escondida) em vez de cortar abas nas bordas.
+          Os botões são `shrink-0` pra não espremer o texto. */}
+      <div className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border p-1 sm:gap-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TIPOS.map((tipo) => (
           <button
             key={tipo.chave}
@@ -40,7 +43,7 @@ export function TiposDeConteudo({
             disabled={'emBreve' in tipo && tipo.emBreve}
             onClick={() => setTipoAtivo(tipo.chave)}
             className={cn(
-              'flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+              'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4',
               'emBreve' in tipo && tipo.emBreve
                 ? 'cursor-not-allowed text-muted-foreground/50'
                 : tipoAtivo === tipo.chave

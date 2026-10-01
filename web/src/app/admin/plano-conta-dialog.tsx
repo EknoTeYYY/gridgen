@@ -114,7 +114,7 @@ export function PlanoContaDialog({
               <Input id="pilotoExpiraEm" type="date" value={pilotoExpiraEm} onChange={(e) => setPilotoExpiraEm(e.target.value)} />
             </div>
           )}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="limiteGeracoes">Gerações/mês</Label>
               <Input

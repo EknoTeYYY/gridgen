@@ -16,8 +16,8 @@ export default async function PostsDoPerfilPage({ params }: { params: Promise<{ 
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">Posts — {perfil.nome}</h1>
           <p className="text-sm text-muted-foreground">Conteúdo gerado por IA pra esse perfil.</p>
         </div>

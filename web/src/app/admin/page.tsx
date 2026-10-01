@@ -36,7 +36,7 @@ export default async function AdminPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Contas</h1>
           <p className="text-sm text-muted-foreground">Agências com acesso ao Gridgen, provisionadas pela Eknotech.</p>
@@ -57,7 +57,7 @@ export default async function AdminPage() {
         <div className="flex flex-col gap-3">
           {contas.map((conta) => (
             <Card key={conta.id}>
-              <CardContent className="flex items-center justify-between gap-4 p-4">
+              <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between md:gap-4">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{conta.nome}</p>
                   <p className="truncate text-xs text-muted-foreground">
@@ -67,7 +67,7 @@ export default async function AdminPage() {
                   </p>
                   {/* Plano fica do lado da conta (é dado dela), separado das
                       ações de acesso à direita (convite, desativar, excluir). */}
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <PlanoContaDialog
                       contaId={conta.id}
                       nome={conta.nome}
@@ -85,7 +85,7 @@ export default async function AdminPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                   {conta.status === 'inativa' && <Badge variant="destructive">Inativa</Badge>}
                   <StatusBadge status={conta.statusConvite} />
                   {conta.statusConvite && conta.statusConvite !== 'aceito' && (

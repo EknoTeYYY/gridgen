@@ -28,16 +28,16 @@ export default async function PerfilShellLayout({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <PerfilAvatarPicker perfil={perfil} className="size-10" />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">{perfil.nome}</h1>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-xl font-semibold tracking-tight break-words sm:text-2xl">{perfil.nome}</h1>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground capitalize">
                 {perfil.tipo}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">/{perfil.slug}</p>
+            <p className="truncate text-sm text-muted-foreground">/{perfil.slug}</p>
           </div>
         </div>
         <PerfilHeaderActions perfilId={id} />

@@ -172,7 +172,7 @@ function PreviewPostGerado({
     <Link
       href={`/dashboard/perfis/${perfilId}/posts?post=${postId}`}
       title="Ver post gerado"
-      className="flex w-40 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted"
+      className="flex w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted sm:w-40"
     >
       {status === 'pronto' && !falhouCarregar ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -211,7 +211,7 @@ function PautaCard({
   const bloqueada = Boolean(pauta.postId)
 
   return (
-    <div className="flex items-stretch gap-4 rounded-lg border p-4">
+    <div className="flex items-stretch gap-3 rounded-lg border p-3 sm:gap-4 sm:p-4">
       {pauta.postId && <PreviewPostGerado perfilId={perfilId} postId={pauta.postId} status={statusPost} assunto={pauta.assunto} />}
 
       {/* Prioriza o "intuito" da pauta (assunto + abordagem, o que se
@@ -235,7 +235,7 @@ function PautaCard({
             </Button>
           )}
         </div>
-        <p className="text-lg font-semibold leading-snug">{pauta.assunto}</p>
+        <p className="text-base font-semibold leading-snug sm:text-lg">{pauta.assunto}</p>
         <p className="text-sm text-muted-foreground">{pauta.abordagem}</p>
 
         <Button
@@ -249,18 +249,18 @@ function PautaCard({
         </Button>
 
         {detalhesAbertos && (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <div className="grid grid-cols-1 gap-x-4 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2">
             <span>
               <strong className="text-foreground/80">Objetivo:</strong> {pauta.objetivo}
             </span>
             <span>
               <strong className="text-foreground/80">Ação desejada:</strong> {pauta.acaoDesejada}
             </span>
-            <span className="col-span-2">
+            <span className="sm:col-span-2">
               <strong className="text-foreground/80">Origem:</strong> {pauta.origemInformacao}
             </span>
             {pauta.motivoUltimaTroca && (
-              <span className="col-span-2 text-amber-600">
+              <span className="text-amber-600 sm:col-span-2">
                 <strong>Última troca:</strong> {pauta.motivoUltimaTroca}
               </span>
             )}
@@ -535,7 +535,7 @@ export function PropostaMensal({ perfilId, propostaInicial }: { perfilId: string
                           publicaç{proposta.totalPautas === 1 ? 'ão' : 'ões'} planejada{proposta.totalPautas === 1 ? '' : 's'}
                         </span>
                       </div>
-                      <span className="text-sm text-muted-foreground">{proposta.frequenciaJustificativa}</span>
+                      <span className="text-sm text-muted-foreground max-sm:line-clamp-2">{proposta.frequenciaJustificativa}</span>
                     </div>
                     {aprovada ? (
                       <Badge className="bg-emerald-600/15 text-emerald-600 border-emerald-600/30">Aprovado — as pautas vão gerar post automaticamente</Badge>

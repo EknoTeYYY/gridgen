@@ -156,7 +156,7 @@ export function GerarComIaForm({
 
   if (gerandoPostId) {
     return (
-      <div className="flex w-full flex-col items-center justify-center gap-3 rounded-[28px] border border-border/60 bg-card p-16 text-center shadow-lg shadow-black/5">
+      <div className="flex w-full flex-col items-center justify-center gap-3 rounded-[28px] border border-border/60 bg-card p-8 text-center sm:p-16 shadow-lg shadow-black/5">
         <Loader2 className="size-6 animate-spin text-primary" />
         <p className="font-medium">Gerando seu post…</p>
         <p className="text-sm text-muted-foreground">Isso leva só alguns segundos — você já vai cair direto no resultado.</p>
@@ -166,7 +166,7 @@ export function GerarComIaForm({
 
   return (
     <form onSubmit={onSubmit} className="flex w-full flex-col gap-2">
-      <div className="flex flex-col gap-4 rounded-[28px] border border-border/60 bg-card p-6 shadow-lg shadow-black/5">
+      <div className="flex flex-col gap-4 rounded-[28px] border border-border/60 bg-card p-4 shadow-lg shadow-black/5 sm:p-6">
         <Input
           placeholder="Nome do post (opcional)"
           value={nome}

@@ -20,8 +20,8 @@ export default async function PostDetalhePage({ params }: { params: Promise<{ id
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <Link
             href={`/dashboard/perfis/${perfilId}/posts`}
             className="mb-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
@@ -29,8 +29,8 @@ export default async function PostDetalhePage({ params }: { params: Promise<{ id
             <ArrowLeft className="size-3" />
             voltar pros posts
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight">{post.slug}</h1>
-          <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight break-words">{post.slug}</h1>
+          <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm text-muted-foreground capitalize">
               {post.tipo} · {post.formato}
             </p>

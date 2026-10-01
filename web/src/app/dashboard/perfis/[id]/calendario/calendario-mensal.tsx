@@ -176,6 +176,12 @@ export function CalendarioMensal({
     return mapa
   }, [grade, personalizadasIniciais])
 
+  const diasComItens = grade.filter(
+    (d) =>
+      d.getMonth() === mesVisivel.getMonth() &&
+      ((eventosPorDia.get(chaveDia(d))?.length ?? 0) > 0 || (postsAgendadosPorDia.get(chaveDia(d))?.length ?? 0) > 0),
+  )
+
   function mudarMes(delta: number) {
     setMesVisivel((atual) => new Date(atual.getFullYear(), atual.getMonth() + delta, 1))
   }
@@ -217,9 +223,107 @@ export function CalendarioMensal({
     }
   }
 
+  // Chips de um dia — os mesmos na grade mensal (desktop/tablet) e na agenda
+  // em lista do celular (`lista`: letra e alvo de toque maiores).
+  function renderEvento(evento: Evento, lista = false) {
+    const post = postsPorCampanha.get(chaveCampanha(evento.id, evento.ano, evento.mes, evento.dia))
+    return (
+      <div
+        key={evento.id}
+        className={cn(
+          'flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] leading-tight',
+          lista && 'gap-1.5 px-2 py-1.5 text-sm',
+          evento.tipo === 'sazonal'
+            ? 'bg-primary/15 text-primary'
+            : 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+        )}
+      >
+        {post && <span className={cn('size-1.5 shrink-0 rounded-full', corDoStatus(post.status))} />}
+        {post ? (
+          <Link
+            href={`/dashboard/perfis/${perfilId}/posts?post=${post.id}`}
+            className="flex min-w-0 flex-1 items-center gap-1 truncate hover:underline"
+            title={`${evento.nome} — abrir post`}
+          >
+            <span className="min-w-0 flex-1 truncate">{evento.nome}</span>
+            <RedesSociaisIcons saidas={post.saidas} tamanho={lista ? 'size-3.5' : 'size-2.5'} />
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => avisarSemPost(evento)}
+            className="min-w-0 flex-1 truncate text-left"
+            title={`${evento.nome} — ainda sem post gerado`}
+          >
+            {evento.nome}
+          </button>
+        )}
+        {evento.personalizadaId && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                disabled={excluindoId === evento.personalizadaId}
+                className={cn('shrink-0 opacity-70 hover:text-destructive hover:opacity-100', lista && 'flex size-7 items-center justify-center')}
+              >
+                {excluindoId === evento.personalizadaId ? (
+                  <Loader2 className={cn('animate-spin', lista ? 'size-3.5' : 'size-2.5')} />
+                ) : (
+                  <X className={lista ? 'size-3.5' : 'size-2.5'} />
+                )}
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir "{evento.nome}"?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Essa data personalizada deixa de gerar posts automaticamente. Posts já gerados por
+                  ela continuam salvos normalmente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => excluir(evento.personalizadaId!)}
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                >
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
+    )
+  }
+
+  function renderAgendado(post: Post, lista = false) {
+    const hora = new Date(post.agendadoPara!).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    return (
+      <Link
+        key={post.id}
+        href={`/dashboard/perfis/${perfilId}/posts?post=${post.id}`}
+        className={cn(
+          'flex items-center gap-1 rounded bg-primary/15 px-1.5 py-0.5 text-[11px] leading-tight text-primary hover:underline',
+          lista && 'gap-1.5 px-2 py-1.5 text-sm',
+        )}
+        title={`Aviso de publicação pra ${hora}`}
+      >
+        <CalendarClock className={cn('shrink-0', lista ? 'size-3.5' : 'size-2.5')} />
+        <span className="min-w-0 flex-1 truncate">
+          <span className="font-semibold">{hora}</span> · {post.slug}
+        </span>
+        <RedesSociaisIcons saidas={post.saidas} tamanho={lista ? 'size-3.5' : 'size-2.5'} />
+      </Link>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => mudarMes(-1)}>
             <ChevronLeft />
@@ -308,7 +412,7 @@ export function CalendarioMensal({
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-primary" />
           Calendário sazonal (todos os Perfis)
@@ -327,7 +431,41 @@ export function CalendarioMensal({
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-lg border">
+      {/* Celular: agenda em lista só com os dias que têm alguma coisa — a
+          grade de 7 colunas ficava com ~50px por dia e os nomes das datas
+          viravam só reticências. */}
+      <div className="flex flex-col gap-2 md:hidden">
+        {diasComItens.length === 0 ? (
+          <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
+            Nenhuma data em {MESES[mesVisivel.getMonth()]}.
+          </p>
+        ) : (
+          diasComItens.map((d) => {
+            const ehHoje = chaveDia(d) === chaveDia(hoje)
+            return (
+              <div key={d.toISOString()} className="flex gap-3 rounded-lg border p-3">
+                <div className="flex w-10 shrink-0 flex-col items-center gap-0.5">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase">{DIAS_SEMANA[d.getDay()]}</span>
+                  <span
+                    className={cn(
+                      'flex size-8 items-center justify-center rounded-full text-base font-semibold',
+                      ehHoje && 'bg-primary text-primary-foreground',
+                    )}
+                  >
+                    {d.getDate()}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  {(eventosPorDia.get(chaveDia(d)) ?? []).map((evento) => renderEvento(evento, true))}
+                  {(postsAgendadosPorDia.get(chaveDia(d)) ?? []).map((post) => renderAgendado(post, true))}
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-lg border md:block">
         <div className="grid grid-cols-7 border-b bg-muted/40">
           {DIAS_SEMANA.map((d) => (
             <div key={d} className="px-2 py-1.5 text-center text-xs font-medium text-muted-foreground uppercase">
@@ -359,96 +497,8 @@ export function CalendarioMensal({
                   {d.getDate()}
                 </span>
                 <div className="flex flex-col gap-0.5">
-                  {eventos.map((evento) => {
-                    const post = postsPorCampanha.get(chaveCampanha(evento.id, evento.ano, evento.mes, evento.dia))
-                    return (
-                      <div
-                        key={evento.id}
-                        className={cn(
-                          'flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] leading-tight',
-                          evento.tipo === 'sazonal'
-                            ? 'bg-primary/15 text-primary'
-                            : 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-                        )}
-                      >
-                        {post && <span className={cn('size-1.5 shrink-0 rounded-full', corDoStatus(post.status))} />}
-                        {post ? (
-                          <Link
-                            href={`/dashboard/perfis/${perfilId}/posts?post=${post.id}`}
-                            className="flex min-w-0 flex-1 items-center gap-1 truncate hover:underline"
-                            title={`${evento.nome} — abrir post`}
-                          >
-                            <span className="min-w-0 flex-1 truncate">{evento.nome}</span>
-                            <RedesSociaisIcons saidas={post.saidas} tamanho="size-2.5" />
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => avisarSemPost(evento)}
-                            className="min-w-0 flex-1 truncate text-left"
-                            title={`${evento.nome} — ainda sem post gerado`}
-                          >
-                            {evento.nome}
-                          </button>
-                        )}
-                        {evento.personalizadaId && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <button
-                                type="button"
-                                disabled={excluindoId === evento.personalizadaId}
-                                className="shrink-0 opacity-70 hover:text-destructive hover:opacity-100"
-                              >
-                                {excluindoId === evento.personalizadaId ? (
-                                  <Loader2 className="size-2.5 animate-spin" />
-                                ) : (
-                                  <X className="size-2.5" />
-                                )}
-                              </button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir "{evento.nome}"?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Essa data personalizada deixa de gerar posts automaticamente. Posts já gerados por
-                                  ela continuam salvos normalmente.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => excluir(evento.personalizadaId!)}
-                                  className="bg-destructive text-white hover:bg-destructive/90"
-                                >
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    )
-                  })}
-                  {agendados.map((post) => {
-                    const hora = new Date(post.agendadoPara!).toLocaleTimeString('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                    return (
-                      <Link
-                        key={post.id}
-                        href={`/dashboard/perfis/${perfilId}/posts?post=${post.id}`}
-                        className="flex items-center gap-1 rounded bg-primary/15 px-1.5 py-0.5 text-[11px] leading-tight text-primary hover:underline"
-                        title={`Aviso de publicação pra ${hora}`}
-                      >
-                        <CalendarClock className="size-2.5 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate">
-                          <span className="font-semibold">{hora}</span> · {post.slug}
-                        </span>
-                        <RedesSociaisIcons saidas={post.saidas} tamanho="size-2.5" />
-                      </Link>
-                    )
-                  })}
+                  {eventos.map((evento) => renderEvento(evento))}
+                  {agendados.map((post) => renderAgendado(post))}
                 </div>
               </div>
             )

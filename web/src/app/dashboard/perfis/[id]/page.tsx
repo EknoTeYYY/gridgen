@@ -89,7 +89,7 @@ export default async function VisaoGeralPerfilPage({ params }: { params: Promise
             <CardTitle className="text-base">BrandKit</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               {CORES(perfil).map(([label, cor]) => (
                 <div key={label} className="flex flex-col items-center gap-1.5">
                   <span className="size-9 rounded-full ring-1 ring-border" style={{ background: cor }} />
@@ -114,7 +114,7 @@ export default async function VisaoGeralPerfilPage({ params }: { params: Promise
                       href={perfil.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-primary wrap-anywhere hover:underline"
                     >
                       {perfil.url}
                       <ExternalLink className="size-3" />
@@ -140,8 +140,8 @@ export default async function VisaoGeralPerfilPage({ params }: { params: Promise
                   </div>
                 )}
                 {perfil.emailContato && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="size-4 text-muted-foreground" />
+                  <div className="flex min-w-0 items-center gap-2 wrap-anywhere">
+                    <Mail className="size-4 shrink-0 text-muted-foreground" />
                     {perfil.emailContato}
                   </div>
                 )}
@@ -172,9 +172,9 @@ export default async function VisaoGeralPerfilPage({ params }: { params: Promise
                     href={linkRedeSocial('instagram', perfil.instagramUrl)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 hover:underline"
+                    className="flex min-w-0 items-center gap-2 wrap-anywhere hover:underline"
                   >
-                    <Instagram className="size-4 text-muted-foreground" />
+                    <Instagram className="size-4 shrink-0 text-muted-foreground" />
                     {perfil.instagramUrl}
                   </a>
                 )}
@@ -183,9 +183,9 @@ export default async function VisaoGeralPerfilPage({ params }: { params: Promise
                     href={linkRedeSocial('linkedin', perfil.linkedinUrl)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 hover:underline"
+                    className="flex min-w-0 items-center gap-2 wrap-anywhere hover:underline"
                   >
-                    <Linkedin className="size-4 text-muted-foreground" />
+                    <Linkedin className="size-4 shrink-0 text-muted-foreground" />
                     {perfil.linkedinUrl}
                   </a>
                 )}
@@ -194,9 +194,9 @@ export default async function VisaoGeralPerfilPage({ params }: { params: Promise
                     href={linkRedeSocial('tiktok', perfil.tiktokUrl)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 hover:underline"
+                    className="flex min-w-0 items-center gap-2 wrap-anywhere hover:underline"
                   >
-                    <Music2 className="size-4 text-muted-foreground" />
+                    <Music2 className="size-4 shrink-0 text-muted-foreground" />
                     {perfil.tiktokUrl}
                   </a>
                 )}
@@ -216,7 +216,7 @@ export default async function VisaoGeralPerfilPage({ params }: { params: Promise
           </CardHeader>
           <CardContent>
             {galeria.length > 0 ? (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
                 {galeria.slice(0, 4).map((item) => (
                   <div key={item.id} className="flex size-16 items-center justify-center overflow-hidden rounded-md border bg-muted p-1.5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

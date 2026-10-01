@@ -59,7 +59,7 @@ export function GaleriaPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{pastaFixa ? `Escolher da pasta "${pastaFixa}"` : 'Escolher imagem da galeria'}</DialogTitle>
         </DialogHeader>

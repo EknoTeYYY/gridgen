@@ -43,13 +43,15 @@ export function PerfilTabsNav({ perfilId }: { perfilId: string }) {
   ]
 
   return (
-    <div className="flex gap-1 border-b">
+    // Rola na horizontal no celular (5 abas não cabem em ~360px) em vez de
+    // quebrar linha ou estourar a largura da página.
+    <div className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
       {abas.map((aba) => (
         <Link
           key={aba.href}
           href={aba.href}
           className={cn(
-            'flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+            'flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
             aba.ativo
               ? 'border-primary text-foreground'
               : 'border-transparent text-muted-foreground hover:text-foreground',

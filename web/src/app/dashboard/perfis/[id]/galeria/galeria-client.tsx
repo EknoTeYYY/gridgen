@@ -260,7 +260,7 @@ export function GaleriaClient({
             <ArrowLeft className="size-4" />
             Galeria
           </button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-2xl font-semibold tracking-tight">{pastaAtual.nome}</h1>
             <Button size="sm" onClick={abrirDialogImagem}>
               <Plus />
@@ -400,7 +400,7 @@ export function GaleriaClient({
         </>
       ) : (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">Galeria</h1>
               <p className="text-sm text-muted-foreground">
@@ -526,7 +526,7 @@ export function GaleriaClient({
       </Dialog>
 
       <Dialog open={itemExpandido !== null} onOpenChange={(aberto) => !aberto && setItemExpandido(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{itemExpandido?.nome || 'Imagem sem nome'}</DialogTitle>
           </DialogHeader>
