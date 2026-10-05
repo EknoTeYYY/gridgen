@@ -25,8 +25,14 @@ async function processar(job: Job<RenderJobPayload>): Promise<RenderJobResult> {
   const dir = canal ? path.join(OUTPUT_DIR, postId, canal) : path.join(OUTPUT_DIR, postId)
   await mkdir(dir, { recursive: true })
 
+  // Um contexto isolado por job: com 2+ jobs abrindo abas no MESMO contexto do
+  // browser, o `page.screenshot` trava até o protocolTimeout (achado real em
+  // produção, 05/10/2026: aprovar o calendário mensal enfileirou 13 posts e os
+  // renders em paralelo falharam com "Page.captureScreenshot timed out").
+  // `bringToFront()` não resolve; contexto separado resolve.
   const browser = await getBrowser()
-  const page = await browser.newPage()
+  const context = await browser.createBrowserContext()
+  const page = await context.newPage()
   try {
     const { largura, altura, padTop, padBottom } = dimensoesPara(post.formato)
     await page.setViewport({ width: largura, height: altura, deviceScaleFactor: CANVAS_SCALE })
@@ -56,7 +62,7 @@ async function processar(job: Job<RenderJobPayload>): Promise<RenderJobResult> {
     console.error(`[render] falha ao renderizar post ${postId}:`, erro)
     return { postId, status: 'erro', erro: 'Falha ao gerar as imagens. Tente novamente.' }
   } finally {
-    await page.close()
+    await context.close()
   }
 }
 
