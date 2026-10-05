@@ -76,9 +76,11 @@ function css(brand: BrandKit, H: number, padTop: number, padBottom: number, tipo
   const bleedScrimV1 = fotoSuave
     ? 'rgba(6,5,20,.15) 0%, rgba(6,5,20,.5) 100%'
     : 'rgba(6,5,20,.3) 0%, rgba(6,5,20,.74) 100%'
+  // A v2 leva a logo no rodapé (ver `logoNoRodape`), então escurece também a
+  // base da foto — sem isso a logo branca some em foto clara embaixo.
   const bleedScrimV2 = fotoSuave
-    ? 'rgba(6,5,20,.65) 0%,rgba(6,5,20,.24) 34%,rgba(6,5,20,0) 58%'
-    : 'rgba(6,5,20,.92) 0%,rgba(6,5,20,.48) 34%,rgba(6,5,20,0) 58%'
+    ? 'rgba(6,5,20,.65) 0%,rgba(6,5,20,.24) 34%,rgba(6,5,20,0) 58%,rgba(6,5,20,0) 76%,rgba(6,5,20,.45) 100%'
+    : 'rgba(6,5,20,.92) 0%,rgba(6,5,20,.48) 34%,rgba(6,5,20,0) 58%,rgba(6,5,20,0) 76%,rgba(6,5,20,.6) 100%'
   const bleedScrimV3 = fotoSuave
     ? 'rgba(6,5,20,.12) 0%, rgba(6,5,20,0) 36%'
     : 'rgba(6,5,20,.24) 0%, rgba(6,5,20,0) 36%'
@@ -312,6 +314,10 @@ ${fonte.faces}
     .lockup{display:flex;align-items:center;gap:${SP.xs}px;font-size:${T.caption}px}
     .lockup .m{color:var(--muted);position:relative;top:3px}
     .count{font-family:${fonte.fontMono};font-size:${T.label}px;color:var(--muted);letter-spacing:.1em}
+    /* Sobre foto de fundo, a cor "muted" do tema some quando a foto é clara
+       embaixo (achado real, 05/10/2026) — o contador ganha uma pílula escura
+       translúcida que segura a leitura em qualquer foto. */
+    .slide:has(.photo-bleed) .count{color:#fff;background:rgba(6,5,20,.55);padding:${SP.xxs}px ${SP.xs}px;border-radius:999px}
   `
 }
 
@@ -339,13 +345,23 @@ const counter = (i: number, t: number) =>
 // agradou visualmente. `.head` agora só carrega a logo grande da capa, quando
 // existe.
 function headBlock(s: Slide, A: Assets): string {
-  const bigLogo = s.logoTop ? `<img class="logo-top" src="${A.logo}" alt="logo">` : ''
+  const bigLogo = s.logoTop && !logoNoRodape(s) ? `<img class="logo-top" src="${A.logo}" alt="logo">` : ''
   return `<div class="head">${bigLogo}</div>`
 }
 
 function footBlock(s: Slide, i: number, t: number, A: Assets, brand: BrandKit): string {
+  if (logoNoRodape(s)) return `<div class="foot"><img class="logo-top" src="${A.logo}" alt="logo">${counter(i, t)}</div>`
   const noLockup = s.logoTop || s.layout === 'logocover'
   return `<div class="foot">${noLockup ? '<span></span>' : lockup(A, brand)}${counter(i, t)}</div>`
+}
+
+const varianteCapaFoto = (s: Slide) => ((s.variante ?? 0) % 5 + 5) % 5
+
+// Capa com foto na v2 ancora o título no topo — com a logo grande também no
+// topo, os dois ficavam colados (achado real, 05/10/2026). Nessa variante a
+// logo desce pro rodapé; nas outras o título já fica no meio ou embaixo.
+function logoNoRodape(s: Slide): boolean {
+  return Boolean(s.logoTop) && s.layout === 'photo' && Boolean(s.full) && varianteCapaFoto(s) === 2
 }
 
 // 4 composições da capa (photo, full:true) — variante 0 é a original. O
@@ -353,7 +369,7 @@ function footBlock(s: Slide, i: number, t: number, A: Assets, brand: BrandKit): 
 // slide de capa do mesmo post usa a mesma composição, mas o próximo post do
 // mesmo tipo tende a sortear outra.
 function capaFotoHTML(s: Slide, hint: string): string {
-  const variante = ((s.variante ?? 0) % 5 + 5) % 5
+  const variante = varianteCapaFoto(s)
   const uri = s.photoDataUri ?? ''
   // v4 reaproveita o mesmo scrim forte da v0 (mais confiável pra legibilidade
   // de um texto grande e pesado) — não tem `bleed-scrim-v4` próprio.
