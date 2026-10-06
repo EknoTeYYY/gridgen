@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Instagram, Linkedin, Music2 } from 'lucide-react'
+import { Instagram, Linkedin, Music2, Save } from 'lucide-react'
 import { Controller, useForm, type Control } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { BRAND_KIT_PADRAO } from '@gridgen/shared'
+import { BRAND_KIT_PADRAO, CONJUNTOS_FONTE, FONTES_CURADAS, fonteCurada, type ConjuntoFonte } from '@gridgen/shared'
 import { maskDocumento, maskTelefone } from '@/lib/mascaras'
 import type { Perfil, PerfilFormValues } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -15,9 +16,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ColorPickerField } from '@/components/form/color-picker-field'
 import { LabelComDica } from '@/components/form/info-tooltip'
 import { atualizarPerfil, criarPerfil } from './actions'
+import { ID_SLOT_SALVAR } from './[id]/perfil-header-actions'
+
+const ID_FORM = 'perfil-form'
 
 const corHex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'cor precisa ser hex de 6 dígitos, ex. #8b5cf6')
 
@@ -29,6 +34,7 @@ const schema = z.object({
   corFundo: corHex,
   corTexto: corHex,
   temaPadrao: z.enum(['ink', 'brand', 'light', 'paper']),
+  fonte: z.enum(CONJUNTOS_FONTE),
   lockupTag: z.string(),
   url: z.string(),
   telefoneContato: z.string(),
@@ -49,6 +55,7 @@ function valoresPadrao(perfil?: Perfil): PerfilFormValues {
       corFundo: BRAND_KIT_PADRAO.corFundo,
       corTexto: BRAND_KIT_PADRAO.corTexto,
       temaPadrao: BRAND_KIT_PADRAO.temaPadrao,
+      fonte: BRAND_KIT_PADRAO.fonte,
       lockupTag: '',
       url: '',
       telefoneContato: '',
@@ -67,6 +74,7 @@ function valoresPadrao(perfil?: Perfil): PerfilFormValues {
     corFundo: perfil.corFundo,
     corTexto: perfil.corTexto,
     temaPadrao: perfil.temaPadrao,
+    fonte: fonteCurada(perfil.fonte).id,
     lockupTag: perfil.lockupTag ?? '',
     url: perfil.url ?? '',
     telefoneContato: perfil.telefoneContato ?? '',
@@ -93,6 +101,54 @@ function CampoCorControlado({
       name={name}
       render={({ field }) => <ColorPickerField id={name} label={label} value={field.value} onChange={field.onChange} />}
     />
+  )
+}
+
+// Só pra prévia na tela: o render NÃO usa isto — embute os próprios arquivos
+// (render/assets/fonts), então a peça não depende do Google Fonts no ar.
+const FAMILIAS_PREVIA = [...new Set(FONTES_CURADAS.flatMap((f) => [f.titulo, f.texto]))]
+const URL_FONTES_PREVIA = `https://fonts.googleapis.com/css2?${FAMILIAS_PREVIA.map(
+  (f) => `family=${f.replace(/ /g, '+')}:wght@400;700;800`,
+).join('&')}&display=swap`
+
+const ABA_EMPILHADA = 'col-start-1 row-start-1 data-[state=inactive]:invisible'
+
+function CampoFonte({ value, onChange }: { value: ConjuntoFonte; onChange: (v: ConjuntoFonte) => void }) {
+  const atual = fonteCurada(value)
+  return (
+    <div className="flex flex-col gap-4">
+      <link rel="stylesheet" href={URL_FONTES_PREVIA} />
+      <div className="flex flex-col gap-1.5">
+        <LabelComDica
+          htmlFor="fonte"
+          texto="Par de fontes aplicado aos textos de todos os posts deste perfil: a primeira nos títulos e manchetes, a segunda nos parágrafos e listas."
+        >
+          Fonte título | Fonte texto
+        </LabelComDica>
+        <Select value={value} onValueChange={(v) => onChange(v as ConjuntoFonte)}>
+          <SelectTrigger id="fonte" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FONTES_CURADAS.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                <span style={{ fontFamily: `'${f.titulo}'`, fontWeight: 700 }}>{f.titulo}</span>
+                <span className="text-muted-foreground">|</span>
+                <span style={{ fontFamily: `'${f.texto}'` }}>{f.texto}</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-2 rounded-lg border p-4">
+        <p className="text-2xl leading-tight" style={{ fontFamily: `'${atual.titulo}'`, fontWeight: 800 }}>
+          O mês ainda nem começou e o calendário já tá fechado.
+        </p>
+        <p className="text-sm text-muted-foreground" style={{ fontFamily: `'${atual.texto}'` }}>
+          Primeiro a gente vê datas, lançamentos e rotina do negócio: o que faz sentido comunicar em cada semana.
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -126,8 +182,20 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
     router.refresh()
   }
 
+  const [slotSalvar, setSlotSalvar] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    if (perfilExistente) setSlotSalvar(document.getElementById(ID_SLOT_SALVAR))
+  }, [perfilExistente])
+
+  const botaoSalvar = (
+    <Button type="submit" form={ID_FORM} size={slotSalvar ? 'sm' : 'default'} disabled={isSubmitting}>
+      <Save />
+      {isSubmitting ? 'Salvando…' : perfilExistente ? 'Salvar alterações' : 'Criar perfil'}
+    </Button>
+  )
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-6">
+    <form id={ID_FORM} onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
@@ -163,7 +231,10 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
       <Card>
         <CardHeader>
           <CardTitle>Contato</CardTitle>
-          <CardDescription>Dados de quem esse Perfil representa — não aparece no conteúdo gerado.</CardDescription>
+          <CardDescription>
+            Telefone e site entram no convite final dos posts, conforme o canal de conversão do perfil. E-mail e
+            CPF/CNPJ não aparecem no conteúdo gerado.
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
@@ -180,6 +251,10 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
                 />
               )}
             />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="url">Site</Label>
+            <Input id="url" placeholder="ex. https://exemplo.com.br" {...register('url')} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="emailContato">E-mail</Label>
@@ -233,68 +308,89 @@ export function PerfilForm({ perfilExistente }: { perfilExistente?: Perfil }) {
       <Card>
         <CardHeader>
           <CardTitle>BrandKit</CardTitle>
-          <CardDescription>Cores e tema usados pelo motor de render em todo conteúdo deste perfil.</CardDescription>
+          <CardDescription>Cores, fonte e tema usados pelo motor de render em todo conteúdo deste perfil.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <CampoCorControlado name="corPrimaria" label="Cor primária" control={control} />
-            <CampoCorControlado name="corSecundaria" label="Cor secundária" control={control} />
-            <CampoCorControlado name="corFundo" label="Fundo (tema escuro)" control={control} />
-            <CampoCorControlado name="corTexto" label="Texto (tema escuro)" control={control} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <LabelComDica
-                htmlFor="temaPadrao"
-                texto='Tema visual padrão de cada slide quando o post não especificar outro: "Escuro" usa o fundo/texto acima, "Marca" é o gradiente sólido da cor primária→secundária, "Claro"/"Papel" são fundos brancos com texto escuro.'
-              >
-                Tema padrão
-              </LabelComDica>
-              <Controller
-                control={control}
-                name="temaPadrao"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="temaPadrao" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ink">Escuro (ink)</SelectItem>
-                      <SelectItem value="brand">Marca (gradiente)</SelectItem>
-                      <SelectItem value="light">Claro</SelectItem>
-                      <SelectItem value="paper">Papel</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+          <Tabs defaultValue="cores">
+            <TabsList>
+              <TabsTrigger value="cores">Cores</TabsTrigger>
+              <TabsTrigger value="fonte">Fonte</TabsTrigger>
+              <TabsTrigger value="temas">Temas</TabsTrigger>
+            </TabsList>
+            {/* As 3 abas ficam montadas e empilhadas na mesma célula do grid; a
+                inativa só fica invisível. Assim o card tem sempre a altura da
+                aba mais alta (Fonte) e o botão de salvar não pula ao trocar de
+                aba — e os campos continuam registrados no formulário. */}
+            <div className="grid">
+              <TabsContent value="cores" forceMount className={ABA_EMPILHADA}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <CampoCorControlado name="corPrimaria" label="Cor primária" control={control} />
+                  <CampoCorControlado name="corSecundaria" label="Cor secundária" control={control} />
+                  <CampoCorControlado name="corFundo" label="Fundo (tema escuro)" control={control} />
+                  <CampoCorControlado name="corTexto" label="Texto (tema escuro)" control={control} />
+                </div>
+              </TabsContent>
+              <TabsContent value="fonte" forceMount className={ABA_EMPILHADA}>
+                <Controller
+                  control={control}
+                  name="fonte"
+                  render={({ field }) => <CampoFonte value={field.value} onChange={field.onChange} />}
+                />
+              </TabsContent>
+              <TabsContent value="temas" forceMount className={ABA_EMPILHADA}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <LabelComDica
+                      htmlFor="temaPadrao"
+                      texto='Tema visual padrão de cada slide quando o post não especificar outro: "Escuro" usa o fundo e o texto definidos na aba Cores, "Marca" é o gradiente sólido da cor primária→secundária, "Claro"/"Papel" são fundos brancos com texto escuro.'
+                    >
+                      Tema padrão
+                    </LabelComDica>
+                    <Controller
+                      control={control}
+                      name="temaPadrao"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger id="temaPadrao" className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ink">Escuro (ink)</SelectItem>
+                            <SelectItem value="brand">Marca (gradiente)</SelectItem>
+                            <SelectItem value="light">Claro</SelectItem>
+                            <SelectItem value="paper">Papel</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <LabelComDica
+                      htmlFor="lockupTag"
+                      texto='Texto curto que acompanha a logo no rodapé de cada slide (o "lockup" da marca) — ex.: um segmento ou slogan curto, como "marketing imobiliário".'
+                    >
+                      Tagline do lockup
+                    </LabelComDica>
+                    <Input id="lockupTag" placeholder="ex. marketing imobiliário" {...register('lockupTag')} />
+                  </div>
+                </div>
+              </TabsContent>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <LabelComDica
-                htmlFor="lockupTag"
-                texto='Texto curto que acompanha a logo no rodapé de cada slide (o "lockup" da marca) — ex.: um segmento ou slogan curto, como "marketing imobiliário".'
-              >
-                Tagline do lockup
-              </LabelComDica>
-              <Input id="lockupTag" placeholder="ex. marketing imobiliário" {...register('lockupTag')} />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="url">URL</Label>
-            <Input id="url" placeholder="ex. https://exemplo.com.br" {...register('url')} />
-          </div>
+          </Tabs>
         </CardContent>
       </Card>
       </div>
 
       {erro && <p className="text-sm text-destructive">{erro}</p>}
 
-      <div className="flex gap-3">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Salvando…' : perfilExistente ? 'Salvar alterações' : 'Criar perfil'}
-        </Button>
-      </div>
+      {/* Na edição, o botão vai pro canto superior direito do cabeçalho do
+          Perfil (fora do <form> no DOM, por isso o atributo `form`); na
+          criação não existe esse cabeçalho e ele fica aqui embaixo. */}
+      {slotSalvar ? (
+        createPortal(botaoSalvar, slotSalvar)
+      ) : (
+        <div className="flex gap-3">{botaoSalvar}</div>
+      )}
     </form>
   )
 }

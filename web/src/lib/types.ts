@@ -1,4 +1,4 @@
-import type { UsoConta } from '@gridgen/shared'
+import type { ConjuntoFonte, UsoConta } from '@gridgen/shared'
 
 export type { UsoConta }
 
@@ -220,6 +220,7 @@ export interface PerfilFormValues {
   corFundo: string
   corTexto: string
   temaPadrao: 'ink' | 'brand' | 'light' | 'paper'
+  fonte: ConjuntoFonte
   lockupTag: string
   url: string
   telefoneContato: string

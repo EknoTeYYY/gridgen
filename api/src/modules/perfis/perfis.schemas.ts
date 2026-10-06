@@ -1,3 +1,4 @@
+import { CONJUNTOS_FONTE } from '@gridgen/shared'
 import { z } from 'zod'
 
 function opcionalOuVazio<T extends z.ZodTypeAny>(schema: T) {
@@ -29,6 +30,7 @@ export const criarPerfilSchema = z.object({
   corFundo: corHex.optional(),
   corTexto: corHex.optional(),
   temaPadrao: z.enum(['ink', 'brand', 'light', 'paper']).optional(),
+  fonte: z.enum(CONJUNTOS_FONTE).optional(),
   lockupTag: z.string().max(80).optional(),
   url: opcionalOuVazio(z.string().url()),
   telefoneContato: z.string().max(30).optional(),

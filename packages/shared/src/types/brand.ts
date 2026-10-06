@@ -1,16 +1,17 @@
+import type { ConjuntoFonte } from './fontes.js'
 import type { Tema } from './post.js'
 
 /**
  * Substitui o antigo `brand.mjs` hardcoded: cada Perfil carrega o seu.
- * Fontes vêm de um conjunto curado (campo `fonte`) — upload livre de fonte
- * arbitrária fica fora do v1.
+ * Fontes vêm de um conjunto curado (campo `fonte`, ver `FONTES_CURADAS`) —
+ * upload livre de fonte arbitrária fica fora do v1.
  */
 export interface BrandKit {
   corPrimaria: string
   corSecundaria: string
   corFundo: string
   corTexto: string
-  fonte: 'poppins-inter'
+  fonte: ConjuntoFonte
   logoColorUrl?: string | null
   logoBrancoUrl?: string | null
   iconeColorUrl?: string | null

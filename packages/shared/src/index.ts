@@ -1,5 +1,6 @@
 export * from './types/post.js'
 export * from './types/brand.js'
+export * from './types/fontes.js'
 export * from './types/tipos.js'
 export * from './types/render-job.js'
 export * from './types/post-builder.js'
