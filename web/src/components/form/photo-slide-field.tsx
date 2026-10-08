@@ -6,15 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { GaleriaPickerDialog } from './galeria-picker-dialog'
 import { PexelsPickerDialog } from './pexels-picker-dialog'
-
-function converterParaDataUri(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('falha ao ler o arquivo'))
-    reader.readAsDataURL(file)
-  })
-}
+import { prepararImagem } from '@/lib/imagem'
 
 // Foto de slide tem três origens possíveis — upload próprio (produto/ambiente
 // do cliente), busca no banco de imagens de referência, ou a galeria própria
@@ -43,7 +35,7 @@ export function PhotoSlideField({
     if (!file) return
     setErro(null)
     try {
-      onChange(await converterParaDataUri(file))
+      onChange(await prepararImagem(file))
     } catch {
       setErro('não foi possível ler a imagem selecionada')
     }

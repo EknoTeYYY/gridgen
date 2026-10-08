@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Folder, ImageIcon, ImagePlus, Loader2, Plus, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
+import { prepararImagem } from '@/lib/imagem'
 import type { GaleriaItem, GaleriaPasta, Perfil } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
@@ -38,15 +39,6 @@ const PASTAS_SUGERIDAS = [PASTA_LOGO_MARCA, 'Prova Social', 'Produtos', 'Referê
 const DICA_PASTA: Record<string, string> = {
   'Prova Social': 'Prints de feedback real (WhatsApp, Instagram, Google) entram aqui — é o material do tipo Prova Social.',
   Produtos: 'Fotos dos produtos/itens de verdade entram aqui — usadas nos tipos Produtos e Serviços.',
-}
-
-function converterParaDataUri(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('falha ao ler o arquivo'))
-    reader.readAsDataURL(file)
-  })
 }
 
 type AssetsDeMarca = Pick<Perfil, 'logoColorUrl' | 'logoBrancoUrl' | 'iconeColorUrl' | 'iconeBrancoUrl'>
@@ -208,16 +200,24 @@ export function GaleriaClient({
     setPastaEnviandoDrop(pasta)
     let sucesso = 0
     for (const arquivo of imagens) {
+      let url: string
       try {
-        const url = await converterParaDataUri(arquivo)
+        url = await prepararImagem(arquivo)
+      } catch {
+        toast.error(`não foi possível ler "${arquivo.name}" — confira se é uma imagem válida (JPG, PNG ou WebP)`)
+        continue
+      }
+      try {
         const resultado = await criarItemGaleria(perfilId, { pasta, url })
         if (resultado?.erro) {
-          toast.error(resultado.erro)
+          toast.error(`"${arquivo.name}": ${resultado.erro}`)
         } else {
           sucesso++
         }
       } catch {
-        toast.error(`não foi possível ler "${arquivo.name}"`)
+        // Antes caía aqui com "não foi possível ler", mesmo quando o problema era
+        // o envio (ex.: arquivo grande demais) — mensagem enganosa.
+        toast.error(`não foi possível enviar "${arquivo.name}" — tente de novo; se persistir, a imagem pode ser grande demais`)
       }
     }
     setPastaEnviandoDrop(null)
